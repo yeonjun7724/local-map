@@ -13,7 +13,7 @@ export const siteConfig = {
     zoom: 15.5,
   },
   map: {
-    style: 'https://tiles.openfreemap.org/styles/liberty',
+    styleUrl: 'https://tiles.openfreemap.org/styles/liberty',
     attributionControl: false as const,
   },
   features: {

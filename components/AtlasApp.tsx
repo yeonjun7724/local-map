@@ -98,7 +98,7 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
             : '좌표 출처: ' + selected.source}</p>
           {siteConfig.features.sharing && <button onClick={share}>이 보기의 링크 복사 ↗</button>}
         </section>}
-        <div className="legend">● 제공 좌표가 있는 장소<br />● 숫자는 같은 좌표의 장소 수 · 클릭해 선택<br />● 노란색은 선택한 장소 · 점선은 근사 좌표<br />좌표 미등록 장소는 목록에서 확인<br />실제 도보 경로는 제공하지 않습니다</div>
+        <div className="legend">● 핀 색은 장소 카테고리<br />● 숫자는 같은 좌표의 장소 수 · 클릭해 선택<br />● 강조 테두리는 선택한 장소 · 점선은 근사 좌표<br />좌표 미등록 장소는 목록에서 확인<br />실제 도보 경로는 제공하지 않습니다</div>
       </section>
     </main>
     <div className="toast" role="status">{toast}</div>

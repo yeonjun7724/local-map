@@ -32,8 +32,10 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
         const libre = await import('maplibre-gl');
         if (cancelled || !container.current) return;
         libre.setWorkerUrl(new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url).toString());
+        container.current.replaceChildren();
         instance = new libre.Map({
-          ...siteConfig.map,
+          style: siteConfig.map.styleUrl || 'https://tiles.openfreemap.org/styles/liberty',
+          attributionControl: siteConfig.map.attributionControl,
           container: container.current,
           center, zoom: siteConfig.region.zoom,
         });
@@ -41,7 +43,7 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
         instance.addControl(new libre.AttributionControl({ compact: false }), 'bottom-right');
         instance.addControl(new libre.ScaleControl({ unit: 'metric' }), 'bottom-left');
         timer = setTimeout(() => {
-          if (!cancelled) setStatus('지도 로딩이 지연되고 있습니다. 연결을 확인하고 다시 시도해주세요.');
+          if (!cancelled) setStatus('지도를 불러오지 못했습니다');
         }, 20000);
         instance.on('load', () => {
           if (cancelled) return;
@@ -52,13 +54,13 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
         instance.on('error', () => {
           if (!cancelled) {
             clearTimeout(timer);
-            setStatus('지도 데이터를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.');
+            setStatus('지도를 불러오지 못했습니다');
           }
         });
         observer = new ResizeObserver(() => instance?.resize());
         observer.observe(container.current);
       } catch {
-        if (!cancelled) setStatus('지도를 시작할 수 없습니다. 인터넷 연결과 브라우저의 WebGL 지원을 확인해주세요.');
+        if (!cancelled) setStatus('지도를 불러오지 못했습니다');
       }
     })();
     return () => {
@@ -84,14 +86,13 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
         button.className = 'pin' + (chosen ? ' selected' : '')
           + (place.coordinateStatus === 'approximate' ? ' approximate' : '') + (shared ? ' shared' : '');
         button.dataset.placeIds = group.map(item => item.id).join(',');
-        button.setAttribute('aria-label', shared
-          ? `같은 좌표의 ${group.length}곳 선택: ${group.map(item => item.nameKo).join(', ')}`
-          : `${place.nameKo} 상세 보기, ${coordinateLabel(place)}`);
+        button.setAttribute('aria-label', place.nameKo);
+        if (shared) button.setAttribute('aria-description', `같은 좌표의 ${group.length}곳. 누르면 장소 선택 목록을 엽니다.`);
         button.setAttribute('aria-pressed', String(!!chosen));
         button.textContent = shared ? String(group.length) : '';
+        button.style.backgroundColor = place.color;
         if (!shared) {
           button.append(createLucideElement(categoryIcons[place.icon], { width: '20', height: '20', 'aria-hidden': 'true' }));
-          if (!chosen) button.style.backgroundColor = place.color;
         }
         const label = document.createElement('span');
         label.textContent = shared ? `같은 좌표 ${group.length}곳` : place.nameKo;
@@ -103,9 +104,12 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
           const content = document.createElement('div');
           const title = document.createElement('strong');
           title.textContent = place.nameKo;
+          const category = document.createElement('p');
+          category.className = 'popup-category';
+          category.textContent = place.categoryNameKo;
           const note = document.createElement('p');
           note.textContent = coordinateLabel(place);
-          content.append(title, note);
+          content.append(title, category, note);
           if (shared) {
             const warning = document.createElement('p');
             warning.textContent = `같은 좌표로 등록된 ${group.length}곳입니다. 개별 위치를 확인해주세요.`;
@@ -115,7 +119,8 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
             for (const item of group) {
               const choice = document.createElement('button');
               choice.type = 'button';
-              choice.textContent = item.nameKo;
+              choice.textContent = `${item.nameKo} · ${item.categoryNameKo}`;
+              choice.setAttribute('aria-label', item.nameKo);
               choice.setAttribute('aria-pressed', String(item.id === selectedPlaceId));
               choice.onclick = () => onSelectPlace(item.id);
               choices.append(choice);
@@ -141,22 +146,22 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
         padding: { top: 90, bottom: 330, left: 60, right: 60 },
         duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700,
       });
-    } else if (selectedPlaceId === null) {
-      const located = places.filter(place => place.longitude !== null && place.latitude !== null);
-      if (located.length > 0) {
-        const longitudes = located.map(place => place.longitude!);
-        const latitudes = located.map(place => place.latitude!);
-        map.fitBounds([
-          [Math.min(...longitudes), Math.min(...latitudes)],
-          [Math.max(...longitudes), Math.max(...latitudes)],
-        ], { padding: { top: 150, bottom: 100, left: 55, right: 55 }, maxZoom: siteConfig.region.zoom, duration: 0 });
-      } else {
-        map.jumpTo({ center, zoom: siteConfig.region.zoom, padding: { top: 0, bottom: 0, left: 0, right: 0 } });
-      }
     } else {
       map.jumpTo({ center, zoom: siteConfig.region.zoom, padding: { top: 0, bottom: 0, left: 0, right: 0 } });
     }
   }, [map, places, selectedPlaceId, center]);
+
+  function showAllPins() {
+    if (!map) return;
+    const groups = groupMapPlaces(places);
+    if (!groups.length) return;
+    const longitudes = groups.map(group => group[0].longitude!);
+    const latitudes = groups.map(group => group[0].latitude!);
+    map.fitBounds([
+      [Math.min(...longitudes), Math.min(...latitudes)],
+      [Math.max(...longitudes), Math.max(...latitudes)],
+    ], { padding: { top: 150, bottom: selectedPlaceId ? 330 : 100, left: 55, right: 55 }, maxZoom: siteConfig.region.zoom, duration: 0 });
+  }
 
   function retry() {
     setMap(null);
@@ -166,8 +171,9 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
 
   return <>
     <div ref={container} id="map" aria-label="확대·축소하고 이동할 수 있는 지도" />
+    {map && !status && <button className="map-overview" onClick={showAllPins}>전체 핀 보기</button>}
     {status && <div className="map-status" role="status">{status}
-      {status !== '지도를 불러오는 중입니다.' && <button onClick={retry}>지도 다시 시도</button>}
+      {status !== '지도를 불러오는 중입니다.' && <button onClick={retry}>다시 시도</button>}
     </div>}
   </>;
 }

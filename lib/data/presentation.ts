@@ -6,6 +6,7 @@ export function visiblePlaces(data: AtlasData, routeId: string): MapPlace[] {
     ...place,
     icon: byCategory.get(place.category)!.icon,
     color: byCategory.get(place.category)!.color,
+    categoryNameKo: byCategory.get(place.category)!.nameKo,
   });
   const route = data.routes.find(item => item.id === routeId);
   if (route) {

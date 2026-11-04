@@ -1,4 +1,4 @@
-import { parse } from 'csv-parse/sync';
+import Papa from 'papaparse';
 import { z } from 'zod';
 import { categoryIcons } from '../icons';
 
@@ -75,21 +75,28 @@ function assertUnique(ids: string[], context: string) {
 }
 
 export function parsePlaces(csv: string): ParsedPlace[] {
-  let headers: string[] = [];
-  const rows: unknown[] = parse(csv, {
-    bom: true,
-    columns: (names: string[]) => {
-      headers = names;
-      assertUnique(names, 'places.csv 헤더');
-      return names;
-    },
-    skip_empty_lines: true,
-    trim: true,
-  });
+  const source = csv.replace(/^\uFEFF/, '');
+  // Inspect headers before PapaParse can automatically rename duplicates.
+  const first = Papa.parse<string[]>(source, { delimiter: ',', preview: 1, skipEmptyLines: 'greedy' });
+  if (first.errors.length) throw new Error(`places.csv: ${first.errors[0].message}`);
+  const headers = first.data[0]?.map(header => header.trim()) ?? [];
+  assertUnique(headers, 'places.csv 헤더');
   const expected = Object.keys(placeSchema.shape);
   if (headers.length !== expected.length || expected.some(key => !headers.includes(key))) {
     throw new Error(`places.csv: 헤더를 확인해주세요. 필수 열: ${expected.join(', ')}`);
   }
+  const result = Papa.parse<Record<string, string>>(source, {
+    delimiter: ',',
+    header: true,
+    skipEmptyLines: 'greedy',
+    transformHeader: header => header.trim(),
+    transform: value => value.trim(),
+  });
+  if (result.errors.length) {
+    const error = result.errors[0];
+    throw new Error(`places.csv 레코드 ${(error.row ?? 0) + 1}: ${error.message}`);
+  }
+  const rows = result.data;
   if (rows.length === 0) throw new Error('places.csv: 장소가 없습니다');
   const places = rows.map((row, index) => {
     const result = placeSchema.safeParse(row);

@@ -111,6 +111,11 @@ test('rejects malformed CSV, duplicate headers and duplicate IDs', () => {
   assert.throws(() => parsePlaces(first + first.slice(first.indexOf('\r\n') + 2)), /중복 ID/);
 });
 
+test('PapaParse rejects records with missing or extra columns', () => {
+  assert.throws(() => parsePlaces(fixture().trimEnd() + ',"extra"\r\n'), /fields/i);
+  assert.throws(() => parsePlaces(fixture().replace(/,"missing"\r\n$/, '\r\n')), /fields/i);
+});
+
 test('rejects half-filled, nonnumeric, infinite, out-of-range or swapped coordinates', () => {
   const cases: Record<string, string>[] = [
     { latitude: '37.65' },
