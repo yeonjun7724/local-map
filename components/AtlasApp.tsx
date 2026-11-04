@@ -11,7 +11,9 @@ import PlaceDetails from './PlaceDetails';
 import { getRouteBounds } from '@/lib/data/route';
 import { buildNetworkRoute } from '@/lib/data/paths';
 import RoutePanel from './RoutePanel';
-import type { Locale } from '@/lib/i18n';
+import { getMessages, type Locale } from '@/lib/i18n';
+import RecommendPanel from './routes/RecommendPanel';
+import { MyRouteProvider, useMyRoute } from './routes/MyRouteProvider';
 
 const MapView = dynamic(() => import('./map/MapView'), {
   ssr: false,
@@ -26,8 +28,17 @@ const getHash = () => window.location.hash.slice(1);
 const getServerHash = () => '';
 
 export default function AtlasApp({ data }: { data: AtlasData }) {
+  return <MyRouteProvider><AtlasContent data={data} /></MyRouteProvider>;
+}
+
+function AtlasContent({ data }: { data: AtlasData }) {
+  const myRoute = useMyRoute();
   const hash = useSyncExternalStore(subscribeHash, getHash, getServerHash);
-  const route = siteConfig.features.themes ? data.routes.find(item => item.routeId === hash) : undefined;
+  const customIds = hash === 'my-route' && myRoute.placeIds.length ? myRoute.placeIds : undefined;
+  const route = useMemo(() => customIds ? { routeId: 'my-route', placeIds: customIds,
+    titleKo: getMessages('ko').recommend.customTitle, titleEn: getMessages('en').recommend.customTitle,
+    descriptionKo: getMessages('ko').recommend.customDescription, descriptionEn: getMessages('en').recommend.customDescription }
+    : siteConfig.features.themes ? data.routes.find(item => item.routeId === hash) : undefined, [customIds, data.routes, hash]);
   const viewId = route ? hash : 'all';
   const [selection, setSelection] = useState<{ routeId: string; placeId: string; origin: 'map' | 'card' | 'itinerary' } | null>(null);
   const [routeLocale, setRouteLocale] = useState<Locale>('ko');
@@ -38,7 +49,7 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
-  const candidates = useMemo(() => visiblePlaces(data, viewId), [data, viewId]);
+  const candidates = useMemo(() => visiblePlaces(data, viewId, customIds), [data, viewId, customIds]);
   const locatedCandidates = useMemo(() => candidates.filter(place => place.latitude !== null && place.longitude !== null), [candidates]);
   const filtered = useMemo(() => filterPlaces(candidates, { category, query }), [candidates, category, query]);
   // Exactly this one array is used by cards, count, and map pins.
@@ -69,6 +80,7 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
     setQuery('');
     setSelection(null);
     setCameraRequest(value => value + 1);
+    myRoute.clear();
     window.location.hash = 'all';
   }
 
@@ -102,6 +114,10 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
         <div className="eyebrow">{siteConfig.brand.taglineEn}</div>
         <h1>이번 주말은,<br />호수에서 만나요.</h1>
         <p>아이의 걸음에 맞춰 천천히.<br />우리 가족의 산책 테마를 골라보세요.</p>
+        <RecommendPanel places={data.places} themes={data.themes} locale={routeLocale} onShow={() => {
+          setCategory('all'); setQuery(''); setSelection(null); setCameraRequest(value => value + 1);
+          window.location.hash = 'my-route';
+        }} />
         {siteConfig.features.themes && <div className="tabs" role="group" aria-label="산책 코스">
           <button className={viewId === 'all' ? 'active' : ''} aria-pressed={viewId === 'all'}
             onClick={resetFilters}>전체</button>
@@ -115,7 +131,7 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
           </button>)}
         </div>}
         {route ? <RoutePanel route={route} places={data.places} locale={routeLocale} onLocaleChange={setRouteLocale}
-          onSelectPlace={selectStop} onClear={resetFilters} path={networkPath} pathsMeta={data.routePaths} filtered={networkRoute.filtered} /> : <section className="course">
+          onSelectPlace={selectStop} onClear={resetFilters} path={networkPath} pathsMeta={customIds ? undefined : data.routePaths} filtered={networkRoute.filtered} custom={!!customIds} /> : <section className="course">
           <h2>공원과 주변의 모든 장소</h2>
           <p>명소부터 카페와 음식점까지, 등록된 장소를 한눈에 둘러보세요.</p>
           {unlocated.length > 0 && <p className="note">좌표 미등록 {unlocated.length}곳은 아래 별도 목록에서 확인할 수 있습니다.</p>}
@@ -161,8 +177,8 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
         <MapView places={places} routeLine={networkRoute.geojson} routeBounds={routeBounds} cameraRequest={cameraRequest} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
         <div className="maptitle"><strong>{siteConfig.region.nameKo} · 산책 지도</strong><small>{siteConfig.region.nameEn} · 장소별 좌표 확인 필요</small></div>
         {selected && <PlaceDetails key={selected.id} place={selected} onClose={() => setSelection(null)}
-          onShare={siteConfig.features.sharing ? share : undefined} />}
-        <div className="legend">● 지도·카드 {places.length}곳<br />● 핀 색은 장소 카테고리<br />● 동일 좌표의 핀 간격은 화면상 구분용<br />● 강조 테두리는 선택 · 점선 테두리는 근사 좌표<br />{route ? '━ 번호는 방문 순서 · 실선은 OSM 보행망 계산 경로' : '코스를 선택하면 OSM 보행망 경로를 표시합니다'}</div>
+          onShare={siteConfig.features.sharing && !customIds ? share : undefined} />}
+        <div className="legend">● 지도·카드 {places.length}곳<br />● 핀 색은 장소 카테고리<br />● 동일 좌표의 핀 간격은 화면상 구분용<br />● 강조 테두리는 선택 · 점선 테두리는 근사 좌표<br />{customIds ? '번호는 추천 방문 순서 · 보행망 경로 미계산' : route ? '━ 번호는 방문 순서 · 실선은 OSM 보행망 계산 경로' : '코스를 선택하면 OSM 보행망 경로를 표시합니다'}</div>
       </section>
     </main>
     <div className="toast" role="status">{toast}</div>

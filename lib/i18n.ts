@@ -2,6 +2,15 @@ export type Locale = 'ko' | 'en';
 
 export const messages = {
   ko: {
+    recommend: {
+      title: '나에게 맞는 코스', notice: '추천은 체류시간 가정과 구간당 이동 여유 10분을 사용합니다. 실제 보행시간·운영 여부·동반자 적합성은 방문 전 확인해주세요. 추천 코스의 보행망 경로는 아직 계산되지 않았습니다.',
+      time: '이용 시간', theme: '산책 테마', companion: '동반자', start: '출발 장소', any: '전체', center: '지도 중심에서 가까운 곳',
+      companions: { solo: '혼자', couple: '연인', friends: '친구', kids: '아이 동반' },
+      submit: '코스 추천받기', loading: '추천하는 중…', show: '지도에서 보기', ai: 'AI 추천', rule: '기본 추천',
+      noMatch: '조건에 맞는 코스가 없습니다. 시간 안에 3~7곳을 구성할 수 있도록 시간을 늘리거나 테마·출발점을 바꿔주세요.',
+      failed: '추천을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+      customTitle: '나의 추천 코스', customDescription: '추천받은 정류장을 방문 순서대로 표시합니다. 이동 경로·거리는 계산하지 않았습니다.',
+    },
     route: {
       straightNotice: '점선은 방문 순서를 직선으로 연결한 참고용 표시입니다. 실제 도보 경로가 아니며 거리·소요시간을 뜻하지 않습니다.',
       networkNotice: 'OpenStreetMap 보행망으로 계산한 경로입니다. 정류장을 가까운 보행망 노드에 연결했으며, 시설 출입구·현장 통행 가능 여부는 미검증입니다.',
@@ -29,6 +38,15 @@ export const messages = {
     },
   },
   en: {
+    recommend: {
+      title: 'Find my route', notice: 'Recommendations use assumed visit durations plus a 10-minute travel buffer per leg. Verify actual walking times, opening hours, and suitability for your group before visiting. Walking-network paths for recommended routes have not been calculated.',
+      time: 'Time available', theme: 'Theme', companion: 'Companions', start: 'Starting place', any: 'Any', center: 'Nearest to the map center',
+      companions: { solo: 'Solo', couple: 'Couple', friends: 'Friends', kids: 'With children' },
+      submit: 'Get a recommendation', loading: 'Finding a route…', show: 'View on map', ai: 'AI recommendation', rule: 'Default recommendation',
+      noMatch: 'No matching route. Increase the time or change the theme or start to fit 3–7 stops within your time limit.',
+      failed: 'Could not load a recommendation. Please try again shortly.',
+      customTitle: 'My recommended route', customDescription: 'Recommended stops are shown in visit order. Walking paths and distances have not been calculated.',
+    },
     route: {
       straightNotice: 'Dashed lines connect stops in visit order for reference. They are not walking directions and do not represent travel distance or time.',
       networkNotice: 'Calculated on the OpenStreetMap walking network. Stops are snapped to nearby network nodes; facility entrances and on-site access have not been verified.',

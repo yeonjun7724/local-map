@@ -3,7 +3,7 @@ import type { RoutePath, RoutePaths } from '@/lib/data/paths';
 import { formatDuration, getMessages, type Locale } from '@/lib/i18n';
 
 type Props = {
-  route: Route;
+  route: Pick<Route, 'routeId' | 'titleKo' | 'titleEn' | 'descriptionKo' | 'descriptionEn' | 'placeIds'>;
   places: Place[];
   locale: Locale;
   onLocaleChange: (locale: Locale) => void;
@@ -12,15 +12,16 @@ type Props = {
   path?: RoutePath;
   pathsMeta?: RoutePaths;
   filtered?: boolean;
+  custom?: boolean;
 };
 
-export default function RoutePanel({ route, places, locale, onLocaleChange, onSelectPlace, onClear, path, pathsMeta, filtered = false }: Props) {
+export default function RoutePanel({ route, places, locale, onLocaleChange, onSelectPlace, onClear, path, pathsMeta, filtered = false, custom = false }: Props) {
   const t = getMessages(locale);
   const byId = new Map(places.map(place => [place.id, place]));
   const totalsAvailable = path?.status === 'ready' && !filtered;
   const unavailable = filtered ? t.route.hiddenByFilter : t.route.notCalculated;
   return <section className="course route-panel" aria-labelledby="route-title" lang={locale}>
-    <p className="route-straight-notice">{t.route.networkNotice}</p>
+    <p className="route-straight-notice">{custom ? t.recommend.notice : t.route.networkNotice}</p>
     <div className="route-toolbar">
       <div className="route-languages" role="group" aria-label="코스 표시 언어">
         <button type="button" aria-pressed={locale === 'ko'} onClick={() => onLocaleChange('ko')}>한국어</button>
@@ -30,7 +31,7 @@ export default function RoutePanel({ route, places, locale, onLocaleChange, onSe
     </div>
     <h2 id="route-title">{locale === 'ko' ? route.titleKo : route.titleEn}</h2>
     <p className="course-description">{locale === 'ko' ? route.descriptionKo : route.descriptionEn}</p>
-    <p className="network-status" role="status">{!path || path.status === 'unavailable' ? t.route.networkUnavailable
+    <p className="network-status" role="status">{custom ? t.recommend.customDescription : !path || path.status === 'unavailable' ? t.route.networkUnavailable
       : path.status === 'partial' ? t.route.networkPartial : t.route.networkReady}</p>
     {filtered && <p className="note">{t.route.networkFiltered}</p>}
     <dl className="route-metrics">
