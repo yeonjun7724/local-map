@@ -44,6 +44,24 @@
 .card-address,.card-tags{font-size:10px;color:var(--muted);line-height:1.6;margin-top:5px}
 .empty-results{padding:24px 14px;border:1px dashed #cedacb;border-radius:13px;text-align:center;font-size:13px}
 .empty-results button{border:0;background:var(--ink);color:white;border-radius:8px;padding:10px 15px;font-size:12px}
+.place-card[aria-current=true]{border:2px solid var(--green);background:#edf4eb}
+.unlocated-places{margin-top:20px;font-size:12px;color:var(--muted)}
+.unlocated-places summary{cursor:pointer;font-weight:bold;color:var(--ink)}
+.unlocated-places ul{line-height:1.8;padding-left:20px}
+.detail{max-height:min(60vh,490px);overflow:auto;overscroll-behavior:contain}
+.detail-image,.detail-placeholder{width:100%;height:100px;object-fit:cover;border-radius:10px;margin-bottom:12px}
+.detail-placeholder{display:grid;place-items:center}
+.detail-placeholder svg{width:36px;height:36px}
+.detail .detail-close{position:absolute;top:8px;right:8px;width:30px;height:30px;margin:0;padding:0;border-radius:50%;font-size:22px;z-index:1}
+.detail-category{font-size:11px;font-weight:bold}
+.detail-fields{font-size:11px;line-height:1.6;margin:12px 0;overflow-wrap:anywhere}
+.detail-fields>div{margin-top:8px}
+.detail-fields dt{font-weight:bold}
+.detail-fields dd{margin:2px 0 0;color:var(--muted);white-space:pre-line}
+.detail-links{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+.detail-links a{color:var(--green);font-size:12px;text-underline-offset:3px}
+.maplibregl-popup{z-index:2}
+@media(max-width:800px){.detail{max-height:320px}}
 .shared-place-choices{display:grid;gap:5px;margin-top:9px;max-height:145px;overflow:auto}
 .shared-place-choices button{border:1px solid #dce5da;background:#fff;border-radius:6px;padding:7px;text-align:left;color:var(--ink);font-size:12px}
 .shared-place-choices button[aria-pressed=true]{background:#edf4eb;font-weight:bold}

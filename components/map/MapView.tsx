@@ -78,60 +78,50 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
     void import('maplibre-gl').then(libre => {
       if (cancelled) return;
       for (const group of groupMapPlaces(places)) {
-        const chosen = group.find(place => place.id === selectedPlaceId);
-        const place = chosen ?? group[0];
         const shared = group.length > 1;
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'pin' + (chosen ? ' selected' : '')
-          + (place.coordinateStatus === 'approximate' ? ' approximate' : '') + (shared ? ' shared' : '');
-        button.dataset.placeIds = group.map(item => item.id).join(',');
-        button.setAttribute('aria-label', place.nameKo);
-        if (shared) button.setAttribute('aria-description', `같은 좌표의 ${group.length}곳. 누르면 장소 선택 목록을 엽니다.`);
-        button.setAttribute('aria-pressed', String(!!chosen));
-        button.textContent = shared ? String(group.length) : '';
-        button.style.backgroundColor = place.color;
-        if (!shared) {
+        for (const [index, place] of group.entries()) {
+          const chosen = place.id === selectedPlaceId;
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'pin' + (chosen ? ' selected' : '')
+            + (place.coordinateStatus === 'approximate' ? ' approximate' : '') + (shared ? ' shared' : '');
+          button.dataset.placeIds = place.id;
+          button.setAttribute('aria-label', place.nameKo);
+          if (shared) button.setAttribute('aria-description', `같은 좌표의 ${group.length}곳. 핀 간격은 화면상 구분용입니다.`);
+          button.setAttribute('aria-pressed', String(!!chosen));
+          button.style.backgroundColor = place.color;
           button.append(createLucideElement(categoryIcons[place.icon], { width: '20', height: '20', 'aria-hidden': 'true' }));
-        }
-        const label = document.createElement('span');
-        label.textContent = shared ? `같은 좌표 ${group.length}곳` : place.nameKo;
-        button.append(label);
-        button.onclick = () => onSelectPlace(place.id);
-        const marker = new libre.Marker({ element: button })
-          .setLngLat([place.longitude!, place.latitude!]).addTo(map);
-        if (chosen) {
-          const content = document.createElement('div');
-          const title = document.createElement('strong');
-          title.textContent = place.nameKo;
-          const category = document.createElement('p');
-          category.className = 'popup-category';
-          category.textContent = place.categoryNameKo;
-          const note = document.createElement('p');
-          note.textContent = coordinateLabel(place);
-          content.append(title, category, note);
-          if (shared) {
-            const warning = document.createElement('p');
-            warning.textContent = `같은 좌표로 등록된 ${group.length}곳입니다. 개별 위치를 확인해주세요.`;
-            content.append(warning);
-            const choices = document.createElement('div');
-            choices.className = 'shared-place-choices';
-            for (const item of group) {
-              const choice = document.createElement('button');
-              choice.type = 'button';
-              choice.textContent = `${item.nameKo} · ${item.categoryNameKo}`;
-              choice.setAttribute('aria-label', item.nameKo);
-              choice.setAttribute('aria-pressed', String(item.id === selectedPlaceId));
-              choice.onclick = () => onSelectPlace(item.id);
-              choices.append(choice);
+          const label = document.createElement('span');
+          label.textContent = place.nameKo;
+          button.append(label);
+          button.onclick = () => onSelectPlace(place.id);
+          // Pixel spacing only: every marker keeps the original geographic coordinate.
+          const angle = index * Math.PI * 2 / group.length - Math.PI / 2;
+          const radius = shared ? 30 + group.length * 4 : 0;
+          const offset: [number, number] = [Math.cos(angle) * radius, Math.sin(angle) * radius];
+          const marker = new libre.Marker({ element: button, offset })
+            .setLngLat([place.longitude!, place.latitude!]).addTo(map);
+          if (chosen) {
+            const content = document.createElement('div');
+            const title = document.createElement('strong');
+            title.textContent = place.nameKo;
+            const category = document.createElement('p');
+            category.className = 'popup-category';
+            category.textContent = place.categoryNameKo;
+            const note = document.createElement('p');
+            note.textContent = coordinateLabel(place);
+            content.append(title, category, note);
+            if (shared) {
+              const warning = document.createElement('p');
+              warning.textContent = `같은 좌표 ${group.length}곳 · 핀 간격은 화면상 구분용입니다. 개별 위치를 확인해주세요.`;
+              content.append(warning);
             }
-            content.append(choices);
+            marker.setPopup(new libre.Popup({ closeButton: false, closeOnClick: false, offset: 28 })
+              .setDOMContent(content));
+            marker.togglePopup();
           }
-          marker.setPopup(new libre.Popup({ closeButton: false, closeOnClick: false, offset: 28 })
-            .setDOMContent(content));
-          marker.togglePopup();
+          markers.push(marker);
         }
-        markers.push(marker);
       }
     });
     return () => { cancelled = true; markers.forEach(marker => marker.remove()); };
