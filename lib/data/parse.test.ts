@@ -22,7 +22,7 @@ function fixture(changes: Record<string, string> = {}) {
 
 test('real sources resolve every route and category without manufacturing coordinates', () => {
   const result = parseAtlasData(csv, routes, categories);
-  assert.ok(result.routes.every(route => route.stops.every(stop => result.places.some(place => place.id === stop.placeId))));
+  assert.ok(result.routes.every(route => route.placeIds.every(placeId => result.places.some(place => place.id === placeId))));
   const missing = result.places.find(place => place.id === 'traditional-garden')!;
   assert.equal(missing.latitude, null);
   assert.equal(missing.longitude, null);
@@ -73,12 +73,12 @@ test('default and all views include every CSV place, including places outside ro
   }
 });
 
-test('route views keep exactly their candidate places and descriptions', () => {
+test('route views preserve first visit order and original place descriptions', () => {
   const data = parseAtlasData(csv, routes, categories);
   for (const route of data.routes) {
-    const visible = visiblePlaces(data, route.id);
-    assert.deepEqual(visible.map(place => place.id), route.stops.map(stop => stop.placeId));
-    assert.deepEqual(visible.map(place => place.descriptionKo), route.stops.map(stop => stop.description));
+    const visible = visiblePlaces(data, route.routeId);
+    assert.deepEqual(visible.map(place => place.id), [...new Set(route.placeIds)]);
+    assert.ok(visible.every(place => place.descriptionKo === data.places.find(item => item.id === place.id)!.descriptionKo));
   }
 });
 
@@ -134,9 +134,7 @@ test('rejects contradictory coordinate status', () => {
 
 test('rejects dangling categories and route references', () => {
   assert.throws(() => parseAtlasData(fixture({ category: 'unknown' }), routes, categories), /미등록 category/);
-  const brokenRoutes = JSON.stringify([{ ...JSON.parse(routes.replace(/^\uFEFF/, ''))[0], stops: [
-    { placeId: 'absent', description: '설명', icon: '♧' },
-  ] }]);
+  const brokenRoutes = JSON.stringify([{ ...JSON.parse(routes.replace(/^\uFEFF/, ''))[0], placeIds: ['absent'] }]);
   assert.throws(() => parseAtlasData(fixture(), brokenRoutes, categories), /없는 장소/);
 });
 
@@ -144,5 +142,5 @@ test('rejects malformed JSON, duplicate routes and duplicate candidates', () => 
   assert.throws(() => parseAtlasData(csv, '{', categories), /올바른 JSON/);
   const route = JSON.parse(routes.replace(/^\uFEFF/, ''))[0];
   assert.throws(() => parseAtlasData(csv, JSON.stringify([route, route]), categories), /중복 ID/);
-  assert.throws(() => parseAtlasData(csv, JSON.stringify([{ ...route, stops: [route.stops[0], route.stops[0]] }]), categories), /중복 ID/);
+  assert.throws(() => parseAtlasData(csv, JSON.stringify([{ ...route, placeIds: [route.placeIds[0], route.placeIds[0]] }]), categories), /중복 ID/);
 });

@@ -52,13 +52,15 @@ const categorySchema = z.object({
 }).strict();
 const themeSchema = z.object({ id, nameKo: required, nameEn: required }).strict();
 const routeSchema = z.object({
-  id,
-  label: required,
-  title: required,
-  description: required,
-  durationLabel: required,
-  // These are candidates, not an ordered or verified walking path.
-  stops: z.array(z.object({ placeId: id, description: required, icon: required }).strict()).min(1),
+  routeId: z.string().regex(/^[a-z]+(?:-[a-z]+)*$/, '코스 ID는 영어 소문자와 하이픈만 사용할 수 있습니다'),
+  titleKo: required,
+  titleEn: required,
+  descriptionKo: required,
+  descriptionEn: required,
+  theme: id,
+  // Planned visit order, not verified walking geometry or measured travel time.
+  placeIds: z.array(id).min(1),
+  transportMode: z.literal('walking'),
 }).strict();
 
 export type ParsedPlace = z.infer<typeof placeSchema>;
@@ -123,7 +125,7 @@ export function parseAtlasData(csv: string, routesJson: string, categoriesJson: 
   const routes = z.array(routeSchema).min(1).parse(readJson(routesJson, 'routes.json'));
   assertUnique(categories.map(category => category.id), 'categories.json');
   assertUnique(themes.map(theme => theme.id), 'categories.json themes');
-  assertUnique(routes.map(route => route.id), 'routes.json');
+  assertUnique(routes.map(route => route.routeId), 'routes.json');
   const categoryIds = new Set(categories.map(category => category.id));
   const placeIds = new Set(places.map(place => place.id));
   const themeIds = new Set(themes.map(theme => theme.id));
@@ -136,13 +138,15 @@ export function parseAtlasData(csv: string, routesJson: string, categoriesJson: 
     }
   }
   for (const route of routes) {
-    if (!themeIds.has(route.id)) {
-      throw new Error(`routes.json '${route.id}': 미등록 theme`);
+    if (!themeIds.has(route.theme)) {
+      throw new Error(`routes.json '${route.routeId}': 미등록 theme '${route.theme}'`);
     }
-    assertUnique(route.stops.map(stop => stop.placeId), `routes.json '${route.id}' 후보`);
-    for (const stop of route.stops) {
-      if (!placeIds.has(stop.placeId)) {
-        throw new Error(`routes.json '${route.id}': 없는 장소 '${stop.placeId}'`);
+    // User-authorized exception: a round trip may end at its starting place.
+    const closedLoop = route.placeIds.length > 2 && route.placeIds[0] === route.placeIds.at(-1);
+    assertUnique(closedLoop ? route.placeIds.slice(0, -1) : route.placeIds, `routes.json '${route.routeId}' 방문 순서`);
+    for (const placeId of route.placeIds) {
+      if (!placeIds.has(placeId)) {
+        throw new Error(`routes.json '${route.routeId}': 없는 장소 '${placeId}'`);
       }
     }
   }

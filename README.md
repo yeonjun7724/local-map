@@ -18,7 +18,7 @@ http://localhost:3000 을 엽니다. 지도는 인터넷 연결과 WebGL이 필�
 ```text
 data/
   places.csv                 장소·좌표·출처·검증 상태
-  routes.json                기존 3개 테마와 후보 장소 ID
+  routes.json                가족 나들이 3개 코스와 기획 방문 순서
   categories.json            분류 ID·이름·아이콘
 config/
   site.ts                    브랜드·지역·지도·기능·언어 설정
@@ -56,7 +56,11 @@ map-draft.html               이전 단일 HTML 초안 보관
 
 ## 데이터 수정
 
-앱의 기준 데이터는 `data/`입니다. 원본 CSV 30개 행과 초안에만 있던 좌표 미등록 후보 14개를 포함합니다. 원본의 메타데이터는 유지했습니다. 테마의 후보 목록은 `routes.json`의 `stops[].placeId`로 지정합니다. 후보는 검증된 방문 순서나 보행 경로가 아닙니다.
+앱의 기준 데이터는 `data/`입니다. 원본 CSV 30개 행과 초안에만 있던 좌표 미등록 후보 14개를 포함합니다. 원본의 메타데이터는 유지했습니다. 코스는 `routes.json`의 `routeId`, `titleKo`, `titleEn`, `descriptionKo`, `descriptionEn`, `theme`, `placeIds`, `transportMode`로 정의합니다. `placeIds`의 순서는 기획 방문 순서이며 실측·검증된 보행 경로를 의미하지 않습니다.
+
+코스는 `lake-scenery-walk`(호수 풍경과 정자 산책), `plants-exhibition-walk`(식물과 전시를 보는 가족 탐방), `park-snack-city-walk`(산책 후 간식과 거리 구경) 3개입니다. 이동 방식은 모두 `walking`입니다. `theme`은 등록된 테마 ID를 참조하며 routeId와 같을 필요는 없습니다. 설명의 약 1.5~2.5시간·2~3시간은 사용자가 제공한 목표 체류 시간으로 보행시간이나 ETA를 계산한 값이 아닙니다.
+
+사용자 승인으로 왕복 코스의 시작점·종료점 중복만 예외로 허용합니다. 두 번째 코스는 공원으로 돌아오는 방문 순서 4회를 그대로 표시하며, 카드·핀은 고유 장소 3곳만 표시합니다. 중간 장소의 중복·없는 장소 ID·미등록 theme·잘못된 routeId·walking 이외 이동 방식은 오류로 처리합니다. 검증되지 않은 경로선·거리·분 단위 ETA를 만들지 않습니다.
 
 기본 화면과 `#all`은 좌표가 있는 30곳을 카드 30개·핀 30개로 표시합니다. 좌표 미등록 14곳은 별도 접이식 목록에 보관합니다. 테마를 선택하면 해당 후보만 표시하며 ‘전체’ 버튼으로 돌아올 수 있습니다. 초기 화면은 `region.center`·`region.zoom`을 사용하고 ‘전체 핀 보기’를 누르면 전달된 모든 좌표가 보이도록 범위를 맞춥니다.
 
@@ -68,7 +72,7 @@ map-draft.html               이전 단일 HTML 초안 보관
 - `coordinateStatus`: `missing`(좌표 없음), `approximate`(근사치), `unverified`(제공됐으나 미검증), `verified`(별도 검증 완료).
 - 좌표 미등록 장소는 별도 접이식 목록에 유지하고 마커를 표시하지 않습니다. 애수교는 원본의 근사 좌표를 점선 마커로 표시합니다. 나머지 제공 좌표도 검증 완료로 승격하지 않았습니다.
 - 출처·라이선스·운영시간 등 원본 정보를 유지합니다. 빈 값은 임의로 채우지 않습니다.
-- CSV의 `category`는 `categories.json`의 `categories[].id`, 비어 있지 않은 `theme`은 `themes[].id`와 일치해야 합니다. 코스 ID도 등록된 theme ID여야 합니다.
+- CSV의 `category`는 `categories.json`의 `categories[].id`, 비어 있지 않은 `theme`은 `themes[].id`와 일치해야 합니다. 코스의 `theme`도 등록된 테마 ID여야 합니다.
 - 지도 시작 위치와 줌은 `config/site.ts`의 `region.center`, `region.zoom`이며, 선택 테마는 URL 해시로 공유합니다. ‘전체 핀 보기’를 누르면 결과의 모든 장소를 포함하도록 범위를 조정합니다.
 
 데이터 변경은 개발 서버에서 새로고침하거나 프로덕션을 다시 빌드해 반영합니다. 보관용 `raw/`와 `map-draft.html`은 앱 변경이 자동 반영되지 않습니다.

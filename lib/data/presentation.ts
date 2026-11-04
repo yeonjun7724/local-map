@@ -8,17 +8,16 @@ export function visiblePlaces(data: AtlasData, routeId: string): MapPlace[] {
     color: byCategory.get(place.category)!.color,
     categoryNameKo: byCategory.get(place.category)!.nameKo,
   });
-  const route = data.routes.find(item => item.id === routeId);
+  const route = data.routes.find(item => item.routeId === routeId);
   if (route) {
     const byId = new Map(data.places.map(place => [place.id, place]));
-    return route.stops.map(stop => ({
-      ...decorate(byId.get(stop.placeId)!), descriptionKo: stop.description,
-    }));
+    // A start/end revisit stays in the itinerary but needs only one card and pin.
+    return [...new Set(route.placeIds)].map(placeId => decorate(byId.get(placeId)!));
   }
   return data.places.map(decorate);
 }
 
-// Preserve the supplied coordinates; coincident places share a selectable pin.
+// Group coincident coordinates for visual spacing without changing coordinates.
 export function groupMapPlaces(places: MapPlace[]): MapPlace[][] {
   const groups = new Map<string, MapPlace[]>();
   for (const place of places) {

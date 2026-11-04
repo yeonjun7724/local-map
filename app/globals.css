@@ -16,6 +16,8 @@
 .maplibregl-popup-content p{margin:5px 0 0;font-size:11px}
 .pin.selected span{display:none}
 .pin .pin-label{display:none;max-width:200px;width:max-content;white-space:normal;text-align:center;line-height:1.5;font-size:12px;background:#fff;border:1px solid #dce5da;box-shadow:0 4px 16px #203d3420}
+.tabs button{flex:1 1 140px}
+.route-itinerary{padding-left:22px;margin:15px 0 0;font-size:12px;line-height:1.9}
 .pin:hover,.pin:focus-visible{z-index:3}
 .pin:not(.selected):focus-visible .pin-label{display:block}
 @media(hover:hover){.pin:not(.selected):hover .pin-label{display:block}}

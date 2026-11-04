@@ -23,8 +23,8 @@ const getServerHash = () => '';
 
 export default function AtlasApp({ data }: { data: AtlasData }) {
   const hash = useSyncExternalStore(subscribeHash, getHash, getServerHash);
-  const route = siteConfig.features.themes ? data.routes.find(item => item.id === hash) : undefined;
-  const viewId = route?.id ?? 'all';
+  const route = siteConfig.features.themes ? data.routes.find(item => item.routeId === hash) : undefined;
+  const viewId = route ? hash : 'all';
   const [selection, setSelection] = useState<{ routeId: string; placeId: string; origin: 'map' | 'card' } | null>(null);
   const [toast, setToast] = useState('');
   const [category, setCategory] = useState('all');
@@ -33,6 +33,7 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   const candidates = useMemo(() => visiblePlaces(data, viewId), [data, viewId]);
+  const byId = useMemo(() => new Map(data.places.map(place => [place.id, place])), [data.places]);
   const locatedCandidates = useMemo(() => candidates.filter(place => place.latitude !== null && place.longitude !== null), [candidates]);
   const filtered = useMemo(() => filterPlaces(candidates, { category, query }), [candidates, category, query]);
   // Exactly this one array is used by cards, count, and map pins.
@@ -42,10 +43,10 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
   const center = siteConfig.region.center;
   const selectPlace = useCallback((placeId: string) => {
     setSelection({ routeId: viewId, placeId, origin: 'card' });
-  }, [viewId]);
+  }, [viewId, setSelection]);
   const selectFromMap = useCallback((placeId: string) => {
     setSelection({ routeId: viewId, placeId, origin: 'map' });
-  }, [viewId]);
+  }, [viewId, setSelection]);
   useEffect(() => {
     if (selected && selection?.origin === 'map') {
       document.getElementById(`place-card-${selected.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
@@ -82,18 +83,24 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
         <div className="eyebrow">{siteConfig.brand.taglineEn}</div>
         <h1>이번 주말은,<br />호수에서 만나요.</h1>
         <p>아이의 걸음에 맞춰 천천히.<br />우리 가족의 산책 테마를 골라보세요.</p>
-        {siteConfig.features.themes && <div className="tabs" role="group" aria-label="산책 테마">
+        {siteConfig.features.themes && <div className="tabs" role="group" aria-label="산책 코스">
           <button className={viewId === 'all' ? 'active' : ''} aria-pressed={viewId === 'all'}
             onClick={() => { setSelection(null); window.location.hash = 'all'; }}>전체</button>
-          {data.routes.map(item => <button key={item.id} className={item.id === viewId ? 'active' : ''}
-            aria-pressed={item.id === viewId} onClick={() => { window.location.hash = item.id; }}>
-            {data.themes.find(theme => theme.id === item.id)?.nameKo ?? item.label}
+          {data.routes.map(item => <button key={item.routeId} className={item.routeId === viewId ? 'active' : ''}
+            aria-pressed={item.routeId === viewId} onClick={() => { window.location.hash = item.routeId; }}>
+            {item.titleKo}
           </button>)}
         </div>}
         <section className="course">
-          <h2>{route?.title ?? '공원과 주변의 모든 장소'}</h2>
-          <p>{route?.description ?? '명소부터 카페와 음식점까지, 등록된 장소를 한눈에 둘러보세요.'}</p>
-          {route && <span className="tag">{route.durationLabel}</span>}
+          <h2>{route?.titleKo ?? '공원과 주변의 모든 장소'}</h2>
+          <p>{route?.descriptionKo ?? '명소부터 카페와 음식점까지, 등록된 장소를 한눈에 둘러보세요.'}</p>
+          {route && <>
+            <span className="tag">{data.themes.find(theme => theme.id === route.theme)?.nameKo} · 기획 방문 순서 · 실제 동선 미검증</span>
+            <ol className="route-itinerary" aria-label="기획 방문 순서">
+              {route.placeIds.map((placeId, index) => <li key={`${index}-${placeId}`}>{byId.get(placeId)!.nameKo}</li>)}
+            </ol>
+            <p className="note">방문 {route.placeIds.length}회 · 장소 {candidates.length}곳. 지도와 카드는 동일 장소의 재방문을 중복 표시하지 않습니다.</p>
+          </>}
           {unlocated.length > 0 && <p className="note">좌표 미등록 {unlocated.length}곳은 아래 별도 목록에서 확인할 수 있습니다.</p>}
         </section>
         <section className="place-filters" aria-label="장소 검색과 카테고리">
@@ -115,7 +122,7 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
           </div>
           <button type="button" className="reset-filters" onClick={resetFilters}>필터 초기화</button>
         </section>
-        <div className="listhead"><strong>{category !== 'all' || query.trim() ? '검색 결과' : route ? '함께 둘러볼 후보 장소' : '전체 장소'}</strong>
+        <div className="listhead"><strong>{category !== 'all' || query.trim() ? '검색 결과' : route ? '코스 방문 장소' : '전체 장소'}</strong>
           <span role="status" aria-live="polite">{places.length}곳</span>
         </div>
         <ul id="places" className="place-list" aria-label="장소 검색 결과">
@@ -131,7 +138,7 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
           <p>좌표가 없어 지도·카드 결과 수에서 제외했습니다.</p>
           <ul>{unlocated.map(place => <li key={place.id}>{place.nameKo}</li>)}</ul>
         </details>}
-        <p className="note">ⓘ 후보 목록은 방문 순서가 아닙니다. 실제 위치·운영 여부·보행 동선은 확인이 필요합니다.</p>
+        <p className="note">ⓘ {route ? '위 순서는 기획 방문 순서이며, 실제 보행 동선은 미검증입니다.' : '장소 목록은 방문 순서가 아닙니다.'} 실제 위치·운영 여부는 방문 전 확인해주세요.</p>
       </aside>
       <section className="map" aria-label={`${siteConfig.region.nameKo} 실제 지도`}>
         <MapView places={places} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
