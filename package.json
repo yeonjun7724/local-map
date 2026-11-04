@@ -8,7 +8,7 @@
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint .",
-    "test": "tsx --test lib/data/parse.test.ts"
+    "test": "tsx --test lib/data/*.test.ts"
   },
   "dependencies": {
     "lucide": "^1.67.0",

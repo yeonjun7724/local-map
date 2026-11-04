@@ -22,6 +22,28 @@
 .pin.selected{outline:3px solid #ecad49;outline-offset:2px}
 .pin.selected:focus-visible{outline:3px solid #203d34;outline-offset:4px}
 .map-overview{position:absolute;z-index:1;top:115px;right:10px;background:white;border:1px solid #dce5da;border-radius:7px;padding:9px;color:var(--ink);font-size:11px}
+.place-filters{margin-top:24px}
+.search-label{display:block;font-size:13px;font-weight:bold;margin-bottom:9px}
+.search-field{display:flex;align-items:center;border:1px solid #dce5da;background:#fff;border-radius:10px;overflow:hidden}
+.search-field:focus-within{outline:2px solid var(--green);outline-offset:2px}
+.search-field input{width:100%;min-width:0;border:0;outline:none;background:transparent;padding:13px;font:inherit;font-size:13px;color:var(--ink)}
+.search-field button{flex-shrink:0;border:0;background:transparent;padding:10px;font-size:20px;color:var(--muted)}
+.category-chips{display:flex;flex-wrap:wrap;gap:6px;margin:13px 0}
+.category-chips button{border:1px solid #dce5da;background:white;color:var(--ink);border-radius:20px;padding:7px 10px;font-size:11px}
+.category-chips button[aria-pressed=true]{background:var(--ink);color:white;border-color:var(--ink)}
+.category-chips button span{font-size:10px;opacity:.8;margin-left:3px}
+.reset-filters{border:0;background:transparent;color:var(--green);padding:4px 0;text-decoration:underline;font-size:12px}
+.place-list{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+.place-card{border:1px solid #e1e7dc;border-radius:13px;padding:15px 12px;align-items:flex-start}
+.place-card.selected{border-color:var(--green)}
+.card-content{display:block;min-width:0;flex:1;overflow-wrap:anywhere}
+.card-content>span{display:block}
+.card-english{font-size:10px;color:var(--muted);margin-top:3px}
+.card-category{font-size:10px;margin-top:8px;font-weight:bold}
+.card-description{font-size:12px;line-height:1.7;margin-top:6px;display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-address,.card-tags{font-size:10px;color:var(--muted);line-height:1.6;margin-top:5px}
+.empty-results{padding:24px 14px;border:1px dashed #cedacb;border-radius:13px;text-align:center;font-size:13px}
+.empty-results button{border:0;background:var(--ink);color:white;border-radius:8px;padding:10px 15px;font-size:12px}
 .shared-place-choices{display:grid;gap:5px;margin-top:9px;max-height:145px;overflow:auto}
 .shared-place-choices button{border:1px solid #dce5da;background:#fff;border-radius:6px;padding:7px;text-align:left;color:var(--ink);font-size:12px}
 .shared-place-choices button[aria-pressed=true]{background:#edf4eb;font-weight:bold}

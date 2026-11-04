@@ -5,7 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { AtlasData } from '@/lib/data/types';
 import { coordinateLabel, visiblePlaces } from '@/lib/data/presentation';
 import { siteConfig } from '@/config/site';
-import PlaceIcon from './PlaceIcon';
+import PlaceCard from './PlaceCard';
+import { filterPlaces } from '@/lib/data/filter';
 
 const MapView = dynamic(() => import('./map/MapView'), {
   ssr: false,
@@ -25,16 +26,26 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
   const viewId = route?.id ?? 'all';
   const [selection, setSelection] = useState<{ routeId: string; placeId: string } | null>(null);
   const [toast, setToast] = useState('');
+  const [category, setCategory] = useState('all');
+  const [query, setQuery] = useState('');
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
-  const places = useMemo(() => visiblePlaces(data, viewId), [data, viewId]);
+  const candidates = useMemo(() => visiblePlaces(data, viewId), [data, viewId]);
+  const places = useMemo(() => filterPlaces(candidates, { category, query }), [candidates, category, query]);
   const selected = places.find(place => selection?.routeId === viewId && place.id === selection.placeId)
-    ?? (route ? places[0] : null);
+    ?? (route ? places[0] ?? null : null);
   const center = siteConfig.region.center;
   const selectPlace = useCallback((placeId: string) => {
     setSelection({ routeId: viewId, placeId });
   }, [viewId]);
+
+  function resetFilters() {
+    setCategory('all');
+    setQuery('');
+    setSelection(null);
+    window.location.hash = 'all';
+  }
 
   async function share() {
     const url = new URL(window.location.href);
@@ -73,17 +84,36 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
           {route && <span className="tag">{route.durationLabel}</span>}
           <p className="note">{places.filter(place => place.longitude === null).length}곳은 좌표 미등록으로 지도에 표시되지 않습니다.</p>
         </section>
-        <div className="listhead"><strong>{route ? '함께 둘러볼 후보 장소' : '전체 장소'}</strong>
-          <span>{places.length}곳 · 좌표 {places.filter(place => place.longitude !== null).length}곳</span>
+        <section className="place-filters" aria-label="장소 검색과 카테고리">
+          <label htmlFor="place-search" className="search-label">장소 검색</label>
+          <div className="search-field">
+            <input id="place-search" type="search" value={query} placeholder="장소명·태그·주소로 검색"
+              onChange={event => { setQuery(event.target.value); setSelection(null); }} aria-controls="places" />
+            {query && <button type="button" onClick={() => { setQuery(''); setSelection(null); }} aria-label="검색어 지우기">×</button>}
+          </div>
+          <div className="category-chips" role="group" aria-label="장소 카테고리">
+            <button type="button" aria-pressed={category === 'all'}
+              onClick={() => { setCategory('all'); setSelection(null); }}>전체 <span>{candidates.length}</span></button>
+            {data.categories.map(item => <button key={item.id} type="button" data-category={item.id}
+              aria-pressed={category === item.id}
+              style={category === item.id ? { backgroundColor: item.color, borderColor: item.color, color: '#fff' } : {}}
+              onClick={() => { setCategory(item.id); setSelection(null); }}>
+              {item.nameKo} <span>{candidates.filter(place => place.category === item.id).length}</span>
+            </button>)}
+          </div>
+          {(category !== 'all' || query) && <button type="button" className="reset-filters" onClick={resetFilters}>필터·검색 초기화</button>}
+        </section>
+        <div className="listhead"><strong>{category !== 'all' || query.trim() ? '검색 결과' : route ? '함께 둘러볼 후보 장소' : '전체 장소'}</strong>
+          <span role="status" aria-live="polite">{places.length}곳 · 좌표 {places.filter(place => place.longitude !== null).length}곳</span>
         </div>
-        <div id="places">
-          {places.map(place => <button key={place.id} className={'place' + (place.id === selected?.id ? ' selected' : '')}
-            aria-pressed={place.id === selected?.id} onClick={() => selectPlace(place.id)}>
-            <span className="icon" style={{ backgroundColor: place.color + '16' }}><PlaceIcon name={place.icon} color={place.color} /></span>
-            <span><strong>{place.nameKo}</strong><small>{coordinateLabel(place)}</small></span>
-            <span className="arrow">↗</span>
-          </button>)}
-        </div>
+        <ul id="places" className="place-list" aria-label="장소 검색 결과">
+          {places.map(place => <li key={place.id}><PlaceCard place={place} selected={place.id === selected?.id} onSelect={selectPlace} /></li>)}
+        </ul>
+        {places.length === 0 && <div className="empty-results">
+          <strong>조건에 맞는 장소가 없습니다.</strong>
+          <p>검색어·카테고리 또는 산책 테마를 바꿔보세요.</p>
+          <button type="button" onClick={resetFilters}>전체 장소 보기</button>
+        </div>}
         <p className="note">ⓘ 후보 목록은 방문 순서가 아닙니다. 실제 위치·운영 여부·보행 동선은 확인이 필요합니다.</p>
       </aside>
       <section className="map" aria-label={`${siteConfig.region.nameKo} 실제 지도`}>
