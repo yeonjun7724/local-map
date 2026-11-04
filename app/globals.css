@@ -31,6 +31,13 @@
 .route-metrics dt{color:var(--muted);font-size:10px}.route-metrics dd{margin:5px 0 0;font-size:18px;font-weight:bold}
 .network-speed,.network-provenance{font-size:10px!important;overflow-wrap:anywhere;line-height:1.7}
 .route-segments{margin:15px 0;font-size:11px;line-height:1.8}.route-segments summary{cursor:pointer;font-weight:bold}
+.route-metrics{flex-wrap:wrap;gap:12px 20px}
+.route-metrics>div{min-width:0;flex:1 1 110px}
+.route-total-duration dd{font-size:17px;line-height:1.6;overflow-wrap:anywhere}
+.route-leg-time{margin:3px 0 12px;padding:9px 11px;background:#ffffffc9;border-left:2px solid #b8d1b2;border-radius:0 7px 7px 0;font-size:11px;line-height:1.6}
+.route-leg-summary{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.route-leg-summary span{color:var(--muted)}
+.route-leg-time small{display:block;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
 .route-itinerary button{border:0;background:transparent;color:var(--green);text-decoration:underline;text-underline-offset:3px;text-align:left;padding:6px 3px;font-size:12px;line-height:1.6}
 .pin:hover,.pin:focus-visible{z-index:3}
 .pin:not(.selected):focus-visible .pin-label{display:block}
