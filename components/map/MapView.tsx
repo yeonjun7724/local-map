@@ -92,6 +92,8 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
           button.style.backgroundColor = place.color;
           button.append(createLucideElement(categoryIcons[place.icon], { width: '20', height: '20', 'aria-hidden': 'true' }));
           const label = document.createElement('span');
+          label.className = 'pin-label';
+          label.setAttribute('aria-hidden', 'true');
           label.textContent = place.nameKo;
           button.append(label);
           button.onclick = () => onSelectPlace(place.id);

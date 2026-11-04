@@ -15,6 +15,10 @@
 .maplibregl-popup-content{border-radius:12px;padding:12px 16px;color:var(--ink);font-family:inherit}
 .maplibregl-popup-content p{margin:5px 0 0;font-size:11px}
 .pin.selected span{display:none}
+.pin .pin-label{display:none;max-width:200px;width:max-content;white-space:normal;text-align:center;line-height:1.5;font-size:12px;background:#fff;border:1px solid #dce5da;box-shadow:0 4px 16px #203d3420}
+.pin:hover,.pin:focus-visible{z-index:3}
+.pin:not(.selected):focus-visible .pin-label{display:block}
+@media(hover:hover){.pin:not(.selected):hover .pin-label{display:block}}
 .tabs{flex-wrap:wrap}.tabs button{min-width:65px}
 .pin.shared{background:#376b84}
 .pin.shared.selected{background:#ecad49}
