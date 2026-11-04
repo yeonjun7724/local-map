@@ -47,6 +47,7 @@ function AtlasContent({ data }: { data: AtlasData }) {
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recommendDialog = useRef<HTMLDialogElement>(null);
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   const candidates = useMemo(() => visiblePlaces(data, viewId, customIds), [data, viewId, customIds]);
@@ -115,10 +116,6 @@ function AtlasContent({ data }: { data: AtlasData }) {
         <div className="eyebrow">{siteConfig.brand.taglineEn}</div>
         <h1>이번 주말은,<br />호수에서 만나요.</h1>
         <p>아이의 걸음에 맞춰 천천히.<br />우리 가족의 산책 테마를 골라보세요.</p>
-        <RecommendPanel places={data.places} themes={data.themes} locale={routeLocale} onShow={() => {
-          setCategory('all'); setQuery(''); setSelection(null); setCameraRequest(value => value + 1);
-          window.location.hash = 'my-route';
-        }} />
         {siteConfig.features.themes && <div className="tabs" role="group" aria-label="산책 코스">
           <button className={viewId === 'all' ? 'active' : ''} aria-pressed={viewId === 'all'}
             onClick={resetFilters}>전체</button>
@@ -178,6 +175,20 @@ function AtlasContent({ data }: { data: AtlasData }) {
       <section className="map" aria-label={`${siteConfig.region.nameKo} 실제 지도`}>
         <MapView places={places} routeLine={networkRoute.geojson} routeBounds={routeBounds} cameraRequest={cameraRequest} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
         <div className="maptitle"><strong>{siteConfig.region.nameKo} · 산책 지도</strong><small>{siteConfig.region.nameEn} · 장소별 좌표 확인 필요</small></div>
+        <button type="button" className="recommend-map-button" aria-haspopup="dialog" aria-controls="recommend-dialog"
+          onClick={() => recommendDialog.current?.showModal()}>{getMessages(routeLocale).recommend.title}</button>
+        <dialog id="recommend-dialog" className="recommend-dialog" ref={recommendDialog} aria-labelledby="recommend-dialog-title"
+          onClick={event => { if (event.target === event.currentTarget) event.currentTarget.close(); }}>
+          <div className="recommend-dialog-toolbar">
+            <h2 id="recommend-dialog-title">{getMessages(routeLocale).recommend.title}</h2>
+            <button type="button" className="recommend-dialog-close" onClick={() => recommendDialog.current?.close()}>{routeLocale === 'ko' ? '닫기' : 'Close'}</button>
+          </div>
+          <RecommendPanel places={data.places} themes={data.themes} locale={routeLocale} embedded onShow={() => {
+            recommendDialog.current?.close();
+            setCategory('all'); setQuery(''); setSelection(null); setCameraRequest(value => value + 1);
+            window.location.hash = 'my-route';
+          }} />
+        </dialog>
         {selected && <PlaceDetails key={selected.id} place={selected} onClose={() => setSelection(null)}
           onShare={siteConfig.features.sharing && !customIds ? share : undefined} />}
         <div className="legend">● 지도·카드 {places.length}곳<br />● 핀 색은 장소 카테고리<br />● 동일 좌표의 핀 간격은 화면상 구분용<br />● 강조 테두리는 선택 · 점선 테두리는 근사 좌표<br />{customIds && !networkPath ? '번호는 추천 방문 순서 · 보행망 경로 불러오는 중 또는 미표시' : route ? '━ 번호는 방문 순서 · 실선은 OSM 보행망 계산 경로' : '코스를 선택하면 OSM 보행망 경로를 표시합니다'}</div>

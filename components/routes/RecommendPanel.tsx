@@ -6,8 +6,8 @@ import { getMessages, type Locale } from '@/lib/i18n';
 import { responseSchema, type Conditions, type RecommendationResponse } from '@/lib/recommend/types';
 import { useMyRoute } from './MyRouteProvider';
 
-export default function RecommendPanel({ places, themes, locale, onShow }: {
-  places: Place[]; themes: Theme[]; locale: Locale; onShow: () => void;
+export default function RecommendPanel({ places, themes, locale, onShow, embedded = false }: {
+  places: Place[]; themes: Theme[]; locale: Locale; onShow: () => void; embedded?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [conditions, setConditions] = useState<Conditions>({ minutes: 120, theme: null, companion: 'kids', startId: null });
@@ -38,8 +38,8 @@ export default function RecommendPanel({ places, themes, locale, onShow }: {
     finally { pending.current = false; setBusy(false); }
   }
   return <section className="recommend-panel" aria-label={t.title}>
-    <button type="button" className="recommend-toggle" aria-expanded={open} aria-controls="recommend-form" onClick={() => setOpen(value => !value)}>{t.title}</button>
-    {open && <div id="recommend-form">
+    {!embedded && <button type="button" className="recommend-toggle" aria-expanded={open} aria-controls="recommend-form" onClick={() => setOpen(value => !value)}>{t.title}</button>}
+    {(embedded || open) && <div id="recommend-form">
       <p className="note">{t.notice}</p>
       <form onSubmit={submit}>
         <fieldset disabled={busy}><legend>{t.time}</legend><div className="recommend-options">

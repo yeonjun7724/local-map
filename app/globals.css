@@ -112,3 +112,17 @@
 .recommend-result p { font-size: .9rem; line-height: 1.7; overflow-wrap: anywhere; }
 .recommend-badge { display: inline-block; padding: .3rem .55rem; border-radius: 6px; background: #e0eee2; color: #244d3c; font-size: .8rem; font-weight: 700; }
 .recommend-error { color: #8c2d26; font-size: .9rem; line-height: 1.7; }
+.recommend-map-button { position: absolute; z-index: 2; top: 110px; left: 25px; padding: 11px 15px; border: 1px solid #315f43; border-radius: 10px; background: #315f43; color: #fff; font-weight: 700; box-shadow: 0 3px 12px #203d3420; }
+.map:has(.map-status) .recommend-map-button { top: 180px; }
+.recommend-dialog { position: fixed; inset: 24px 24px 24px auto; margin: auto 0; width: min(440px, calc(100vw - 48px)); max-height: calc(100dvh - 48px); border: 1px solid #cfddd5; border-radius: 18px; padding: 18px; background: #f5f9f5; color: var(--ink); overflow-y: auto; overscroll-behavior: contain; box-shadow: 0 12px 50px #203d3433; }
+.recommend-dialog::backdrop { background: #102a224d; }
+.recommend-dialog-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.recommend-dialog-toolbar h2 { margin: 0; font-size: 20px; }
+.recommend-dialog-close { flex-shrink: 0; padding: 8px 12px; border: 1px solid #b8cec0; border-radius: 8px; color: var(--ink); background: white; }
+.recommend-dialog .recommend-panel { margin: 0; padding: 0; border: 0; }
+body:has(.recommend-dialog[open]) { overflow: hidden; }
+@media(max-width:800px) {
+  .recommend-map-button { left: 18px; }
+  .recommend-dialog { inset: auto 0 0; margin: 0; width: 100%; max-width: none; max-height: 82dvh; border-radius: 20px 20px 0 0; padding: 18px 20px calc(20px + env(safe-area-inset-bottom)); }
+  .recommend-dialog::before { content: ''; display: block; width: 38px; height: 4px; margin: -7px auto 15px; border-radius: 3px; background: #b8cec0; }
+}
