@@ -8,17 +8,20 @@ import { coordinateLabel, groupMapPlaces } from '@/lib/data/presentation';
 import { siteConfig } from '@/config/site';
 import { createElement as createLucideElement } from 'lucide';
 import { categoryIcons } from '@/lib/icons';
+import type { RouteBounds } from '@/lib/data/route';
 
 type Props = {
   places: MapPlace[];
   routeLine: FeatureCollection<LineString>;
+  routeBounds: RouteBounds | null;
+  cameraRequest: number;
   selectedPlaceId: string | null;
   onSelectPlace: (id: string) => void;
   center: [number, number];
 };
 
 // Receives validated places and selection; owns only the map's rendering lifecycle.
-export default function MapView({ places, routeLine, selectedPlaceId, onSelectPlace, center }: Props) {
+export default function MapView({ places, routeLine, routeBounds, cameraRequest, selectedPlaceId, onSelectPlace, center }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<LibreMap | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -165,6 +168,12 @@ export default function MapView({ places, routeLine, selectedPlaceId, onSelectPl
 
   useEffect(() => {
     if (!map) return;
+    const frameRoute = () => {
+      if (routeBounds) map.fitBounds(routeBounds, {
+        padding: { top: 150, bottom: 100, left: 70, right: 70 },
+        maxZoom: siteConfig.region.zoom, duration: 0,
+      });
+    };
     const place = places.find(item => item.id === selectedPlaceId);
     if (place?.longitude != null && place.latitude !== null) {
       map.easeTo({
@@ -172,16 +181,15 @@ export default function MapView({ places, routeLine, selectedPlaceId, onSelectPl
         padding: { top: 90, bottom: 330, left: 60, right: 60 },
         duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700,
       });
-    } else if (routeLine.features.length > 0) {
-      const points = routeLine.features.flatMap(feature => feature.geometry.coordinates);
-      map.fitBounds([
-        [Math.min(...points.map(point => point[0])), Math.min(...points.map(point => point[1]))],
-        [Math.max(...points.map(point => point[0])), Math.max(...points.map(point => point[1]))],
-      ], { padding: { top: 150, bottom: 100, left: 70, right: 70 }, maxZoom: siteConfig.region.zoom, duration: 0 });
+    } else if (routeBounds) {
+      frameRoute();
     } else {
       map.jumpTo({ center, zoom: siteConfig.region.zoom, padding: { top: 0, bottom: 0, left: 0, right: 0 } });
     }
-  }, [map, places, routeLine, selectedPlaceId, center]);
+    const onResize = () => { if (!selectedPlaceId) frameRoute(); };
+    map.on('resize', onResize);
+    return () => { map.off('resize', onResize); };
+  }, [map, places, routeBounds, selectedPlaceId, center, cameraRequest]);
 
   function showAllPins() {
     if (!map) return;

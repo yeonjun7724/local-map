@@ -8,7 +8,9 @@ import { siteConfig } from '@/config/site';
 import PlaceCard from './PlaceCard';
 import { filterPlaces } from '@/lib/data/filter';
 import PlaceDetails from './PlaceDetails';
-import { buildStraightRoute } from '@/lib/data/route';
+import { buildStraightRoute, getRouteBounds } from '@/lib/data/route';
+import RoutePanel from './RoutePanel';
+import type { Locale } from '@/lib/i18n';
 
 const MapView = dynamic(() => import('./map/MapView'), {
   ssr: false,
@@ -26,7 +28,9 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
   const hash = useSyncExternalStore(subscribeHash, getHash, getServerHash);
   const route = siteConfig.features.themes ? data.routes.find(item => item.routeId === hash) : undefined;
   const viewId = route ? hash : 'all';
-  const [selection, setSelection] = useState<{ routeId: string; placeId: string; origin: 'map' | 'card' } | null>(null);
+  const [selection, setSelection] = useState<{ routeId: string; placeId: string; origin: 'map' | 'card' | 'itinerary' } | null>(null);
+  const [routeLocale, setRouteLocale] = useState<Locale>('ko');
+  const [cameraRequest, setCameraRequest] = useState(0);
   const [toast, setToast] = useState('');
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
@@ -34,14 +38,14 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   const candidates = useMemo(() => visiblePlaces(data, viewId), [data, viewId]);
-  const byId = useMemo(() => new Map(data.places.map(place => [place.id, place])), [data.places]);
   const locatedCandidates = useMemo(() => candidates.filter(place => place.latitude !== null && place.longitude !== null), [candidates]);
   const filtered = useMemo(() => filterPlaces(candidates, { category, query }), [candidates, category, query]);
   // Exactly this one array is used by cards, count, and map pins.
   const places = useMemo(() => filtered.filter(place => place.latitude !== null && place.longitude !== null), [filtered]);
   const unlocated = useMemo(() => filtered.filter(place => place.latitude === null || place.longitude === null), [filtered]);
   const straightRoute = useMemo(() => buildStraightRoute(route?.placeIds ?? [], places), [route, places]);
-  const selected = places.find(place => selection?.routeId === viewId && place.id === selection.placeId) ?? null;
+  const routeBounds = useMemo(() => route ? getRouteBounds(candidates) : null, [route, candidates]);
+  const selected = filtered.find(place => selection?.routeId === viewId && place.id === selection.placeId) ?? null;
   const center = siteConfig.region.center;
   const selectPlace = useCallback((placeId: string) => {
     setSelection({ routeId: viewId, placeId, origin: 'card' });
@@ -59,7 +63,15 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
     setCategory('all');
     setQuery('');
     setSelection(null);
+    setCameraRequest(value => value + 1);
     window.location.hash = 'all';
+  }
+
+  function selectStop(placeId: string) {
+    setCategory('all');
+    setQuery('');
+    setSelection({ routeId: viewId, placeId, origin: 'itinerary' });
+    setCameraRequest(value => value + 1);
   }
 
   async function share() {
@@ -87,27 +99,22 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
         <p>아이의 걸음에 맞춰 천천히.<br />우리 가족의 산책 테마를 골라보세요.</p>
         {siteConfig.features.themes && <div className="tabs" role="group" aria-label="산책 코스">
           <button className={viewId === 'all' ? 'active' : ''} aria-pressed={viewId === 'all'}
-            onClick={() => { setSelection(null); window.location.hash = 'all'; }}>전체</button>
+            onClick={resetFilters}>전체</button>
           {data.routes.map(item => <button key={item.routeId} className={item.routeId === viewId ? 'active' : ''}
-            aria-pressed={item.routeId === viewId} onClick={() => { window.location.hash = item.routeId; }}>
+            aria-pressed={item.routeId === viewId} onClick={() => {
+              setCategory('all'); setQuery(''); setSelection(null);
+              setCameraRequest(value => value + 1);
+              window.location.hash = item.routeId;
+            }}>
             {item.titleKo}
           </button>)}
         </div>}
-        <section className="course">
-          <h2>{route?.titleKo ?? '공원과 주변의 모든 장소'}</h2>
-          <p>{route?.descriptionKo ?? '명소부터 카페와 음식점까지, 등록된 장소를 한눈에 둘러보세요.'}</p>
-          {route && <>
-            <span className="tag">{data.themes.find(theme => theme.id === route.theme)?.nameKo} · 기획 방문 순서 · 실제 동선 미검증</span>
-            <ol className="route-itinerary" aria-label="기획 방문 순서">
-              {route.placeIds.map((placeId, index) => <li key={`${index}-${placeId}`}>{byId.get(placeId)!.nameKo}</li>)}
-            </ol>
-            <p className="note">방문 {route.placeIds.length}회 · 장소 {candidates.length}곳. 지도와 카드는 동일 장소의 재방문을 중복 표시하지 않습니다.</p>
-            <p className="route-line-note">점선은 방문 순서의 직선 연결이며 실제 길이 아닙니다.</p>
-            {straightRoute.missingLegs > 0 && <p className="note">좌표가 없거나 필터로 숨긴 장소가 있는 {straightRoute.missingLegs}개 구간은 연결하지 않습니다.</p>}
-            {straightRoute.coincidentLegs > 0 && <p className="note">동일 좌표의 {straightRoute.coincidentLegs}개 구간은 선이 한 점으로 겹칩니다. 시설별 위치 확인이 필요합니다.</p>}
-          </>}
+        {route ? <RoutePanel route={route} places={data.places} locale={routeLocale} onLocaleChange={setRouteLocale}
+          onSelectPlace={selectStop} onClear={resetFilters} lineStatus={straightRoute} /> : <section className="course">
+          <h2>공원과 주변의 모든 장소</h2>
+          <p>명소부터 카페와 음식점까지, 등록된 장소를 한눈에 둘러보세요.</p>
           {unlocated.length > 0 && <p className="note">좌표 미등록 {unlocated.length}곳은 아래 별도 목록에서 확인할 수 있습니다.</p>}
-        </section>
+        </section>}
         <section className="place-filters" aria-label="장소 검색과 카테고리">
           <label htmlFor="place-search" className="search-label">장소 검색</label>
           <div className="search-field">
@@ -146,7 +153,7 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
         <p className="note">ⓘ {route ? '위 순서는 기획 방문 순서이며, 실제 보행 동선은 미검증입니다.' : '장소 목록은 방문 순서가 아닙니다.'} 실제 위치·운영 여부는 방문 전 확인해주세요.</p>
       </aside>
       <section className="map" aria-label={`${siteConfig.region.nameKo} 실제 지도`}>
-        <MapView places={places} routeLine={straightRoute.geojson} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
+        <MapView places={places} routeLine={straightRoute.geojson} routeBounds={routeBounds} cameraRequest={cameraRequest} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
         <div className="maptitle"><strong>{siteConfig.region.nameKo} · 산책 지도</strong><small>{siteConfig.region.nameEn} · 장소별 좌표 확인 필요</small></div>
         {selected && <PlaceDetails key={selected.id} place={selected} onClose={() => setSelection(null)}
           onShare={siteConfig.features.sharing ? share : undefined} />}

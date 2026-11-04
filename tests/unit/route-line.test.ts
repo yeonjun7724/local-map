@@ -1,10 +1,21 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildStraightRoute } from '../../lib/data/route';
+import { buildStraightRoute, getRouteBounds } from '../../lib/data/route';
 
 const a = { id: 'a', longitude: 126.76, latitude: 37.65 };
 const b = { id: 'b', longitude: 126.77, latitude: 37.66 };
 const c = { id: 'c', longitude: 126.78, latitude: 37.67 };
+
+test('route bounds enclose every supplied stop regardless of input order', () => {
+  assert.deepEqual(getRouteBounds([c, a, b]), [[126.76, 37.65], [126.78, 37.67]]);
+});
+test('coincident stops still provide bounds for fitBounds', () => {
+  assert.deepEqual(getRouteBounds([a, { ...a, id: 'other' }]), [[126.76, 37.65], [126.76, 37.65]]);
+});
+test('route bounds omit missing coordinates and return null when none exist', () => {
+  assert.equal(getRouteBounds([{ id: 'missing', longitude: null, latitude: null }]), null);
+  assert.deepEqual(getRouteBounds([{ id: 'missing', longitude: null, latitude: null }, b]), [[126.77, 37.66], [126.77, 37.66]]);
+});
 
 test('connects visits in order using longitude-latitude coordinate pairs', () => {
   const result = buildStraightRoute(['a', 'b', 'c'], [c, a, b]);

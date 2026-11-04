@@ -2,6 +2,18 @@ import type { FeatureCollection, LineString } from 'geojson';
 import type { Place } from './types';
 
 type RoutePoint = Pick<Place, 'id' | 'longitude' | 'latitude'>;
+export type RouteBounds = [[number, number], [number, number]];
+
+export function getRouteBounds(places: readonly RoutePoint[]): RouteBounds | null {
+  const located = places.filter(place => place.longitude !== null && place.latitude !== null);
+  if (!located.length) return null;
+  const longitudes = located.map(place => place.longitude!);
+  const latitudes = located.map(place => place.latitude!);
+  return [
+    [Math.min(...longitudes), Math.min(...latitudes)],
+    [Math.max(...longitudes), Math.max(...latitudes)],
+  ];
+}
 
 // Connect adjacent visits only. Hidden/missing stops never become shortcuts.
 export function buildStraightRoute(placeIds: readonly string[], places: readonly RoutePoint[]) {

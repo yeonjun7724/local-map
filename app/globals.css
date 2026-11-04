@@ -20,6 +20,13 @@
 .pin .pin-label{display:none;max-width:200px;width:max-content;white-space:normal;text-align:center;line-height:1.5;font-size:12px;background:#fff;border:1px solid #dce5da;box-shadow:0 4px 16px #203d3420}
 .tabs button{flex:1 1 140px}
 .route-itinerary{padding-left:22px;margin:15px 0 0;font-size:12px;line-height:1.9}
+.route-straight-notice{position:sticky;top:0;z-index:1;background:#fff7e6;color:#76501e;font-size:12px;font-weight:bold;border-radius:10px;padding:12px;margin:0 0 14px!important}
+.route-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px;flex-wrap:wrap}
+.route-languages{display:flex;gap:4px}
+.route-languages button,.clear-route{border:1px solid #cdddc7;border-radius:7px;background:white;color:var(--ink);padding:7px 9px;font-size:11px}
+.route-languages button[aria-pressed=true]{background:var(--ink);color:white;border-color:var(--ink)}
+.clear-route{color:#934334;border-color:#e2ccc6}
+.route-itinerary button{border:0;background:transparent;color:var(--green);text-decoration:underline;text-underline-offset:3px;text-align:left;padding:6px 3px;font-size:12px;line-height:1.6}
 .pin:hover,.pin:focus-visible{z-index:3}
 .pin:not(.selected):focus-visible .pin-label{display:block}
 @media(hover:hover){.pin:not(.selected):hover .pin-label{display:block}}
