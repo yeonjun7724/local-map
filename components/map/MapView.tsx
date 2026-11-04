@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Map as LibreMap } from 'maplibre-gl';
 import type { MapPlace } from '@/lib/data/types';
-import { coordinateLabel } from '@/lib/data/presentation';
+import { coordinateLabel, groupMapPlaces } from '@/lib/data/presentation';
 
 type Props = {
   places: MapPlace[];
-  selectedPlaceId: string;
+  selectedPlaceId: string | null;
   onSelectPlace: (id: string) => void;
   center: [number, number];
 };
@@ -72,28 +72,49 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
     const markers: import('maplibre-gl').Marker[] = [];
     void import('maplibre-gl').then(libre => {
       if (cancelled) return;
-      for (const place of places) {
-        if (place.longitude === null || place.latitude === null) continue;
+      for (const group of groupMapPlaces(places)) {
+        const chosen = group.find(place => place.id === selectedPlaceId);
+        const place = chosen ?? group[0];
+        const shared = group.length > 1;
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'pin' + (place.id === selectedPlaceId ? ' selected' : '')
-          + (place.coordinateStatus === 'approximate' ? ' approximate' : '');
-        button.setAttribute('aria-label', `${place.nameKo} 상세 보기, ${coordinateLabel(place)}`);
-        button.setAttribute('aria-pressed', String(place.id === selectedPlaceId));
-        button.textContent = place.icon;
+        button.className = 'pin' + (chosen ? ' selected' : '')
+          + (place.coordinateStatus === 'approximate' ? ' approximate' : '') + (shared ? ' shared' : '');
+        button.dataset.placeIds = group.map(item => item.id).join(',');
+        button.setAttribute('aria-label', shared
+          ? `같은 좌표의 ${group.length}곳 선택: ${group.map(item => item.nameKo).join(', ')}`
+          : `${place.nameKo} 상세 보기, ${coordinateLabel(place)}`);
+        button.setAttribute('aria-pressed', String(!!chosen));
+        button.textContent = shared ? String(group.length) : place.icon;
         const label = document.createElement('span');
-        label.textContent = place.nameKo;
+        label.textContent = shared ? `같은 좌표 ${group.length}곳` : place.nameKo;
         button.append(label);
         button.onclick = () => onSelectPlace(place.id);
         const marker = new libre.Marker({ element: button })
-          .setLngLat([place.longitude, place.latitude]).addTo(map);
-        if (place.id === selectedPlaceId) {
+          .setLngLat([place.longitude!, place.latitude!]).addTo(map);
+        if (chosen) {
           const content = document.createElement('div');
           const title = document.createElement('strong');
           title.textContent = place.nameKo;
           const note = document.createElement('p');
           note.textContent = coordinateLabel(place);
           content.append(title, note);
+          if (shared) {
+            const warning = document.createElement('p');
+            warning.textContent = `같은 좌표로 등록된 ${group.length}곳입니다. 개별 위치를 확인해주세요.`;
+            content.append(warning);
+            const choices = document.createElement('div');
+            choices.className = 'shared-place-choices';
+            for (const item of group) {
+              const choice = document.createElement('button');
+              choice.type = 'button';
+              choice.textContent = item.nameKo;
+              choice.setAttribute('aria-pressed', String(item.id === selectedPlaceId));
+              choice.onclick = () => onSelectPlace(item.id);
+              choices.append(choice);
+            }
+            content.append(choices);
+          }
           marker.setPopup(new libre.Popup({ closeButton: false, closeOnClick: false, offset: 28 })
             .setDOMContent(content));
           marker.togglePopup();
@@ -113,6 +134,18 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
         padding: { top: 90, bottom: 330, left: 60, right: 60 },
         duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700,
       });
+    } else if (selectedPlaceId === null) {
+      const located = places.filter(place => place.longitude !== null && place.latitude !== null);
+      if (located.length > 0) {
+        const longitudes = located.map(place => place.longitude!);
+        const latitudes = located.map(place => place.latitude!);
+        map.fitBounds([
+          [Math.min(...longitudes), Math.min(...latitudes)],
+          [Math.max(...longitudes), Math.max(...latitudes)],
+        ], { padding: { top: 150, bottom: 100, left: 55, right: 55 }, maxZoom: 16, duration: 0 });
+      } else {
+        map.jumpTo({ center, zoom: 14.5, padding: { top: 0, bottom: 0, left: 0, right: 0 } });
+      }
     } else {
       map.jumpTo({ center, zoom: 14.5, padding: { top: 0, bottom: 0, left: 0, right: 0 } });
     }

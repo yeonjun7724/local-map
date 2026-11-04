@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { parseAtlasData, parsePlaces } from './parse';
+import { groupMapPlaces, visiblePlaces } from './presentation';
 
 const csv = readFileSync(new URL('../../data/places.csv', import.meta.url), 'utf8');
 const routes = readFileSync(new URL('../../data/routes.json', import.meta.url), 'utf8');
@@ -26,6 +27,39 @@ test('real sources resolve every route and category without manufacturing coordi
   assert.equal(missing.latitude, null);
   assert.equal(missing.longitude, null);
   assert.equal(result.places.find(place => place.id === 'aesugyo')!.coordinateStatus, 'approximate');
+});
+
+test('default and all views include every CSV place, including places outside routes', () => {
+  const data = parseAtlasData(csv, routes, categories);
+  for (const view of ['', 'all', 'unknown']) {
+    const visible = visiblePlaces(data, view);
+    assert.deepEqual(visible.map(place => place.id), data.places.map(place => place.id));
+    assert.ok(visible.some(place => place.id === 'lafesta'));
+    assert.ok(visible.some(place => place.category === 'food'));
+    assert.ok(visible.some(place => place.category === 'cafe'));
+    assert.ok(visible.every(place => place.icon.length > 0));
+  }
+});
+
+test('route views keep exactly their candidate places and descriptions', () => {
+  const data = parseAtlasData(csv, routes, categories);
+  for (const route of data.routes) {
+    const visible = visiblePlaces(data, route.id);
+    assert.deepEqual(visible.map(place => place.id), route.stops.map(stop => stop.placeId));
+    assert.deepEqual(visible.map(place => place.descriptionKo), route.stops.map(stop => stop.description));
+  }
+});
+
+test('same-coordinate groups retain every located place without changing coordinates', () => {
+  const data = parseAtlasData(csv, routes, categories);
+  const places = visiblePlaces(data, 'all');
+  const before = structuredClone(places);
+  const groups = groupMapPlaces(places);
+  const located = places.filter(place => place.longitude !== null && place.latitude !== null);
+  assert.deepEqual(groups.flat().map(place => place.id).sort(), located.map(place => place.id).sort());
+  assert.ok(groups.some(group => group.length > 1));
+  assert.ok(groups.every(group => group.every(place => place.longitude === group[0].longitude && place.latitude === group[0].latitude)));
+  assert.deepEqual(places, before);
 });
 
 test('handles BOM, quoted commas, escaped quotes, and multiline CSV', () => {
