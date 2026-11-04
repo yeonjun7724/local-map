@@ -6,3 +6,6 @@ coverage/
 .env*
 !.env.example
 npm-debug.log*
+.cache/
+.venv/
+__pycache__/

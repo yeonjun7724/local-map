@@ -8,7 +8,8 @@ import { siteConfig } from '@/config/site';
 import PlaceCard from './PlaceCard';
 import { filterPlaces } from '@/lib/data/filter';
 import PlaceDetails from './PlaceDetails';
-import { buildStraightRoute, getRouteBounds } from '@/lib/data/route';
+import { getRouteBounds } from '@/lib/data/route';
+import { buildNetworkRoute } from '@/lib/data/paths';
 import RoutePanel from './RoutePanel';
 import type { Locale } from '@/lib/i18n';
 
@@ -43,8 +44,12 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
   // Exactly this one array is used by cards, count, and map pins.
   const places = useMemo(() => filtered.filter(place => place.latitude !== null && place.longitude !== null), [filtered]);
   const unlocated = useMemo(() => filtered.filter(place => place.latitude === null || place.longitude === null), [filtered]);
-  const straightRoute = useMemo(() => buildStraightRoute(route?.placeIds ?? [], places), [route, places]);
-  const routeBounds = useMemo(() => route ? getRouteBounds(candidates) : null, [route, candidates]);
+  const networkPath = route ? data.routePaths?.routes[route.routeId] : undefined;
+  const networkRoute = useMemo(() => buildNetworkRoute(networkPath, places), [networkPath, places]);
+  const routeBounds = useMemo(() => route ? getRouteBounds([
+    ...candidates,
+    ...(networkPath?.segments.flatMap(segment => segment.geometry.map(([longitude, latitude]) => ({ longitude, latitude }))) ?? []),
+  ]) : null, [route, candidates, networkPath]);
   const selected = filtered.find(place => selection?.routeId === viewId && place.id === selection.placeId) ?? null;
   const center = siteConfig.region.center;
   const selectPlace = useCallback((placeId: string) => {
@@ -110,7 +115,7 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
           </button>)}
         </div>}
         {route ? <RoutePanel route={route} places={data.places} locale={routeLocale} onLocaleChange={setRouteLocale}
-          onSelectPlace={selectStop} onClear={resetFilters} lineStatus={straightRoute} /> : <section className="course">
+          onSelectPlace={selectStop} onClear={resetFilters} path={networkPath} pathsMeta={data.routePaths} filtered={networkRoute.filtered} /> : <section className="course">
           <h2>공원과 주변의 모든 장소</h2>
           <p>명소부터 카페와 음식점까지, 등록된 장소를 한눈에 둘러보세요.</p>
           {unlocated.length > 0 && <p className="note">좌표 미등록 {unlocated.length}곳은 아래 별도 목록에서 확인할 수 있습니다.</p>}
@@ -153,11 +158,11 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
         <p className="note">ⓘ {route ? '위 순서는 기획 방문 순서이며, 실제 보행 동선은 미검증입니다.' : '장소 목록은 방문 순서가 아닙니다.'} 실제 위치·운영 여부는 방문 전 확인해주세요.</p>
       </aside>
       <section className="map" aria-label={`${siteConfig.region.nameKo} 실제 지도`}>
-        <MapView places={places} routeLine={straightRoute.geojson} routeBounds={routeBounds} cameraRequest={cameraRequest} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
+        <MapView places={places} routeLine={networkRoute.geojson} routeBounds={routeBounds} cameraRequest={cameraRequest} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
         <div className="maptitle"><strong>{siteConfig.region.nameKo} · 산책 지도</strong><small>{siteConfig.region.nameEn} · 장소별 좌표 확인 필요</small></div>
         {selected && <PlaceDetails key={selected.id} place={selected} onClose={() => setSelection(null)}
           onShare={siteConfig.features.sharing ? share : undefined} />}
-        <div className="legend">● 지도·카드 {places.length}곳<br />● 핀 색은 장소 카테고리<br />● 동일 좌표의 핀 간격은 화면상 구분용<br />● 강조 테두리는 선택 · 점선 테두리는 근사 좌표<br />{route ? '┄ 번호는 방문 순서 · 점선은 직선 연결(실제 길 아님)' : '코스를 선택하면 방문 순서를 직선으로 연결합니다'}</div>
+        <div className="legend">● 지도·카드 {places.length}곳<br />● 핀 색은 장소 카테고리<br />● 동일 좌표의 핀 간격은 화면상 구분용<br />● 강조 테두리는 선택 · 점선 테두리는 근사 좌표<br />{route ? '━ 번호는 방문 순서 · 실선은 OSM 보행망 계산 경로' : '코스를 선택하면 OSM 보행망 경로를 표시합니다'}</div>
       </section>
     </main>
     <div className="toast" role="status">{toast}</div>

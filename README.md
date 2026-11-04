@@ -19,6 +19,7 @@ http://localhost:3000 을 엽니다. 지도는 인터넷 연결과 WebGL이 필�
 data/
   places.csv                 장소·좌표·출처·검증 상태
   routes.json                가족 나들이 3개 코스와 기획 방문 순서
+  route-paths.json            OSMnx 보행망 계산 결과·거리·시간·구간 상태
   categories.json            분류 ID·이름·아이콘
 config/
   site.ts                    브랜드·지역·지도·기능·언어 설정
@@ -30,7 +31,8 @@ lib/data/
   parse.test.ts              잘못된 데이터 차단 테스트
   filter.ts                  카테고리·장소 검색 순수 함수
   filter.test.ts             검색·필터 조합과 비변경 검증
-  route.ts                   방문 순서의 직선 GeoJSON 생성
+  route.ts                   지도 범위 계산·이전 직선 연결 유틸리티
+  paths.ts                   보행 경로 검증·지도 GeoJSON 구성
 app/
   page.tsx                   검증 결과를 AtlasApp에 전달
   layout.tsx                 공통 레이아웃
@@ -43,7 +45,9 @@ components/
   map/MapView.tsx             받은 장소의 핀·팝업과 지도 표시
 tests/unit/                  필터 기본 조합·상세 값 누락 처리 테스트
 raw/                         원본 보관
-lib/i18n.ts                  코스 패널 한영 문구(route.straightNotice)
+lib/i18n.ts                  코스 패널 한영 문구(route.networkNotice)
+scripts/generate_route_paths.py  OSMnx 보행망 경로 생성
+requirements-routing.txt     Python 경로 생성 의존성
 map-draft.html               이전 단일 HTML 초안 보관
 ```
 
@@ -63,15 +67,42 @@ map-draft.html               이전 단일 HTML 초안 보관
 
 코스는 `lake-scenery-walk`(호수 풍경과 정자 산책), `plants-exhibition-walk`(식물과 전시를 보는 가족 탐방), `park-snack-city-walk`(산책 후 간식과 거리 구경) 3개입니다. 이동 방식은 모두 `walking`입니다. `theme`은 등록된 테마 ID를 참조하며 routeId와 같을 필요는 없습니다. 설명의 약 1.5~2.5시간·2~3시간은 사용자가 제공한 목표 체류 시간으로 보행시간이나 ETA를 계산한 값이 아닙니다.
 
-사용자 승인으로 왕복 코스의 시작점·종료점 중복만 예외로 허용합니다. 두 번째 코스는 공원으로 돌아오는 방문 순서 4회를 그대로 표시하며, 카드·핀은 고유 장소 3곳만 표시합니다. 중간 장소의 중복·없는 장소 ID·미등록 theme·잘못된 routeId·walking 이외 이동 방식은 오류로 처리합니다. 실제 도보 경로·거리·분 단위 ETA를 만들지 않습니다.
+사용자 승인으로 왕복 코스의 시작점·종료점 중복만 예외로 허용합니다. 두 번째 코스는 공원으로 돌아오는 방문 순서 4회를 그대로 표시하며, 카드·핀은 고유 장소 3곳만 표시합니다. 중간 장소의 중복·없는 장소 ID·미등록 theme·잘못된 routeId·walking 이외 이동 방식은 오류로 처리합니다.
 
-코스를 선택하면 `placeIds`의 인접 방문지를 원본 좌표 `[longitude, latitude]`로 직선 연결합니다. 점선과 방문 번호는 순서 이해를 위한 도식이며 실제 길이 아닙니다. `lib/data/route.ts`에서 GeoJSON을 만들고 MapView는 전달된 선만 그립니다. 필터로 숨기거나 좌표가 없는 정류장 양쪽 구간은 끊으며, 남은 장소를 건너 연결하지 않습니다. ‘전체’ 보기에서는 코스 선과 번호가 사라집니다.
+코스를 선택하면 `route-paths.json`에 저장된 OSM 보행망 구간을 실선으로 표시합니다. 브라우저에서 경로를 계산하거나 직선으로 대체하지 않습니다. `lib/data/paths.ts`가 검증된 구간으로 GeoJSON을 구성하고 MapView는 전달된 선만 그립니다. 필터로 숨긴 장소의 인접 구간은 제외하며 남은 장소를 건너 연결하지 않습니다. ‘전체’ 보기에서는 코스 선과 번호가 사라집니다.
 
-같은 좌표의 인접 방문지는 선이 한 점으로 겹치므로 연결선 대신 안내합니다. 현재 두 번째 코스의 모든 시설은 같은 제공 좌표로 등록돼 선이 나타나지 않습니다. 공원 핀에는 재방문 번호 `1·4`를 표시합니다. 시설별 좌표가 보완되면 동일 코드를 통해 왕복 직선이 표시됩니다. 화면상 핀 offset은 선 좌표에 반영하지 않습니다.
+같은 좌표로 등록된 서로 다른 시설은 실제 0m 경로로 간주하지 않습니다. 현재 두 번째 코스 전체와 세 번째 코스의 마지막 구간은 좌표 보완이 필요합니다. 해당 구간의 거리·시간은 `null`, geometry는 빈 배열이며 이유를 안내합니다. 공원 핀에는 재방문 번호 `1·4`를 표시합니다. 화면상 핀 offset은 보행 경로에 반영하지 않습니다.
 
-코스를 고르면 기존 검색·분류·장소 선택을 해제하고 전체 정류장 좌표로 `fitBounds`합니다. 동일 좌표만 있는 코스도 bounds를 생성하고 최대 확대를 제한합니다. 코스가 선택된 상태에서 화면 크기가 바뀌면 다시 범위를 맞춥니다. 장소 상세를 선택한 동안은 해당 장소로 이동합니다.
+코스를 고르면 기존 검색·분류·장소 선택을 해제하고 전체 정류장 및 보행망 경로 좌표로 `fitBounds`합니다. 도로 우회 구간도 범위에 포함하며 동일 좌표만 있는 코스는 최대 확대를 제한합니다. 화면 크기가 바뀌면 다시 범위를 맞춥니다. 장소 상세를 선택한 동안은 해당 장소로 이동합니다.
 
-코스 패널 상단 안내는 항상 `lib/i18n.ts`의 `route.straightNotice`를 사용합니다. 한국어/English 전환으로 `titleKo/En`, `descriptionKo/En`, CSV의 장소명과 안내 문구를 전환합니다. 정류장 버튼을 누르면 필터를 해제하고 해당 장소 상세를 엽니다. ‘코스 해제’는 검색·분류·상세 선택과 코스 표시를 지우고 전체 지도 30곳 및 지역 기본 중심·줌으로 돌아갑니다. 점선에서 거리나 시간을 산출하지 않습니다.
+코스 패널 상단 안내는 `lib/i18n.ts`의 `route.networkNotice`를 사용합니다. 한국어/English 전환으로 제목·소개·CSV 장소명·생성 상태·추정치 안내를 전환합니다. 정류장 버튼을 누르면 필터를 해제하고 상세를 엽니다. ‘코스 해제’는 필터·상세·경로를 지우고 전체 지도 30곳 및 지역 기본 중심·줌으로 돌아갑니다. 거리·시간은 직선에서 산출하지 않고 생성 파일의 보행망 결과만 표시합니다.
+
+## OSMnx 보행 경로 생성
+
+Python 3.12 이상에서 프로젝트 루트 기준으로 실행합니다(Windows 예시).
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-routing.txt
+.\.venv\Scripts\python.exe scripts/generate_route_paths.py
+npm run build
+```
+
+OSMnx 2.1.1의 `network_type="walk"`로 정류장 주변 보행망을 다운로드하고, `placeIds` 순서대로 가까운 노드에 연결해 `length` 기준 최단 경로를 계산합니다. 선은 실제 OSM edge geometry를 순서대로 이어 구성합니다. 원본 CSV 좌표와 방문 순서는 바꾸지 않습니다. 원본 지점에서 보행망까지 임의 직선 연결은 추가하지 않습니다. 기본 최대 연결점 거리는 100m이며 초과하면 해당 구간을 실패로 기록합니다. 최근접 노드와 시설 출입구는 다를 수 있고, 실제 통행·유모차 접근 가능 여부는 현장 검증되지 않았습니다.
+
+`data/route-paths.json`은 `generatedAt`, `source`, `license`, `walkingSpeedKmh`, `routes[routeId]`를 담습니다. 코스별 `totalDistanceM`, `totalDurationS`, `segments`, `geometry`에 더해 상태와 입력 좌표 스냅샷을 저장합니다. `ready`는 전체 구간 생성, `partial`은 일부 구간 생성, `unavailable`은 생성 가능 구간 없음입니다. 미완성 코스는 전체 거리·시간과 통합 geometry를 비워 두며, 지도에는 성공한 개별 구간만 표시합니다. 직선 경로로 자동 대체하지 않습니다.
+
+거리는 OSM edge `length`의 합이며 시간은 기본 시속 **4.5km** 가정의 추정 이동시간입니다. 관람·휴식·신호 대기·어린이 보행 차이는 포함하지 않습니다. 기존 코스 소개의 1.5~2.5시간·2~3시간 목표 체류 시간과 별개입니다. `--walking-speed-kmh`로 가정을 바꿀 수 있습니다. 일부 정류장을 필터로 숨겨도 전체 코스 합계를 현재 결과처럼 표시하지 않습니다.
+
+보행망과 HTTP 캐시는 `.cache/routing/`에 저장하며 Git에 포함하지 않습니다. 최신 OSM 데이터로 다시 만들거나 지역이 바뀌면 `--refresh`를 사용합니다. `--graph`, `--max-snap-m`, `--overpass-url`도 지정할 수 있습니다. 다운로드 또는 생성 도중 예외가 나면 기존 JSON은 유지합니다. CSV 좌표나 코스 순서 변경 시 서버 검증이 오래된 결과를 거부하므로 스크립트 실행 후 다시 빌드해야 합니다.
+
+생성한 데이터는 © OpenStreetMap contributors, **ODbL 1.0**입니다. 패널과 지도에 출처를 유지합니다. 참고: [OSMnx 공식 문서](https://osmnx.readthedocs.io/en/stable/user-reference.html), [OpenStreetMap 저작권·라이선스](https://www.openstreetmap.org/copyright).
+
+Python 생성 로직의 오프라인 검사는 다음과 같습니다.
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s scripts -p "test_*.py"
+```
 
 기본 화면과 `#all`은 좌표가 있는 30곳을 카드 30개·핀 30개로 표시합니다. 좌표 미등록 14곳은 별도 접이식 목록에 보관합니다. 테마를 선택하면 해당 후보만 표시하며 ‘전체’ 버튼으로 돌아올 수 있습니다. 초기 화면은 `region.center`·`region.zoom`을 사용하고 ‘전체 핀 보기’를 누르면 전달된 모든 좌표가 보이도록 범위를 맞춥니다.
 

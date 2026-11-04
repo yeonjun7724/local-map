@@ -78,24 +78,24 @@ export default function MapView({ places, routeLine, routeBounds, cameraRequest,
 
   useEffect(() => {
     if (!map || routeLine.features.length === 0) return;
-    map.addSource('straight-route', { type: 'geojson', data: routeLine });
+    map.addSource('walking-route', { type: 'geojson', data: routeLine });
     const before = map.getStyle().layers?.find(layer => layer.type === 'symbol')?.id;
     map.addLayer({
-      id: 'straight-route-casing', type: 'line', source: 'straight-route',
+      id: 'walking-route-casing', type: 'line', source: 'walking-route',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': '#ffffff', 'line-width': 7, 'line-opacity': 0.85 },
     }, before);
     map.addLayer({
-      id: 'straight-route-line', type: 'line', source: 'straight-route',
+      id: 'walking-route-line', type: 'line', source: 'walking-route',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': '#26765b', 'line-width': 3.5, 'line-dasharray': [2, 2] },
+      paint: { 'line-color': '#26765b', 'line-width': 4 },
     }, before);
     return () => {
       if (!map.getStyle()) return;
-      for (const id of ['straight-route-line', 'straight-route-casing']) {
+      for (const id of ['walking-route-line', 'walking-route-casing']) {
         if (map.getLayer(id)) map.removeLayer(id);
       }
-      if (map.getSource('straight-route')) map.removeSource('straight-route');
+      if (map.getSource('walking-route')) map.removeSource('walking-route');
     };
   }, [map, routeLine]);
 

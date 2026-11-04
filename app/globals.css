@@ -26,6 +26,11 @@
 .route-languages button,.clear-route{border:1px solid #cdddc7;border-radius:7px;background:white;color:var(--ink);padding:7px 9px;font-size:11px}
 .route-languages button[aria-pressed=true]{background:var(--ink);color:white;border-color:var(--ink)}
 .clear-route{color:#934334;border-color:#e2ccc6}
+.network-status{font-size:12px;font-weight:bold;color:var(--green)}
+.route-metrics{display:flex;gap:20px;background:#fff;border-radius:10px;padding:13px;font-size:12px}
+.route-metrics dt{color:var(--muted);font-size:10px}.route-metrics dd{margin:5px 0 0;font-size:18px;font-weight:bold}
+.network-speed,.network-provenance{font-size:10px!important;overflow-wrap:anywhere;line-height:1.7}
+.route-segments{margin:15px 0;font-size:11px;line-height:1.8}.route-segments summary{cursor:pointer;font-weight:bold}
 .route-itinerary button{border:0;background:transparent;color:var(--green);text-decoration:underline;text-underline-offset:3px;text-align:left;padding:6px 3px;font-size:12px;line-height:1.6}
 .pin:hover,.pin:focus-visible{z-index:3}
 .pin:not(.selected):focus-visible .pin-label{display:block}

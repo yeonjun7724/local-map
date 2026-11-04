@@ -4,7 +4,7 @@ import type { Place } from './types';
 type RoutePoint = Pick<Place, 'id' | 'longitude' | 'latitude'>;
 export type RouteBounds = [[number, number], [number, number]];
 
-export function getRouteBounds(places: readonly RoutePoint[]): RouteBounds | null {
+export function getRouteBounds<T extends Pick<RoutePoint, 'longitude' | 'latitude'>>(places: readonly T[]): RouteBounds | null {
   const located = places.filter(place => place.longitude !== null && place.latitude !== null);
   if (!located.length) return null;
   const longitudes = located.map(place => place.longitude!);
