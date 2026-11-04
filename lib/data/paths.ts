@@ -26,7 +26,7 @@ const schema = z.object({
 export type RoutePaths = z.infer<typeof schema>;
 export type RoutePath = z.infer<typeof pathSchema>;
 
-export function parseRoutePaths(text: string, routes: Route[], places: Place[]): RoutePaths {
+export function parseRoutePaths(text: string, routes: Pick<Route, 'routeId' | 'placeIds'>[], places: Place[]): RoutePaths {
   const data = schema.parse(JSON.parse(text.replace(/^\uFEFF/, '')));
   const byId = new Map(places.map(place => [place.id, place]));
   if (Object.keys(data.routes).length !== routes.length || Object.keys(data.routes).some(id => !routes.some(route => route.routeId === id))) {

@@ -28,7 +28,7 @@ const getHash = () => window.location.hash.slice(1);
 const getServerHash = () => '';
 
 export default function AtlasApp({ data }: { data: AtlasData }) {
-  return <MyRouteProvider><AtlasContent data={data} /></MyRouteProvider>;
+  return <MyRouteProvider places={data.places}><AtlasContent data={data} /></MyRouteProvider>;
 }
 
 function AtlasContent({ data }: { data: AtlasData }) {
@@ -55,7 +55,8 @@ function AtlasContent({ data }: { data: AtlasData }) {
   // Exactly this one array is used by cards, count, and map pins.
   const places = useMemo(() => filtered.filter(place => place.latitude !== null && place.longitude !== null), [filtered]);
   const unlocated = useMemo(() => filtered.filter(place => place.latitude === null || place.longitude === null), [filtered]);
-  const networkPath = route ? data.routePaths?.routes[route.routeId] : undefined;
+  const networkPaths = customIds ? myRoute.paths : data.routePaths;
+  const networkPath = route ? networkPaths?.routes[route.routeId] : undefined;
   const networkRoute = useMemo(() => buildNetworkRoute(networkPath, places), [networkPath, places]);
   const routeBounds = useMemo(() => route ? getRouteBounds([
     ...candidates,
@@ -131,7 +132,8 @@ function AtlasContent({ data }: { data: AtlasData }) {
           </button>)}
         </div>}
         {route ? <RoutePanel route={route} places={data.places} locale={routeLocale} onLocaleChange={setRouteLocale}
-          onSelectPlace={selectStop} onClear={resetFilters} path={networkPath} pathsMeta={customIds ? undefined : data.routePaths} filtered={networkRoute.filtered} custom={!!customIds} /> : <section className="course">
+          onSelectPlace={selectStop} onClear={resetFilters} path={networkPath} pathsMeta={networkPaths} filtered={networkRoute.filtered} custom={!!customIds}
+          networkState={customIds ? myRoute.status : undefined} onRetry={myRoute.retry} /> : <section className="course">
           <h2>공원과 주변의 모든 장소</h2>
           <p>명소부터 카페와 음식점까지, 등록된 장소를 한눈에 둘러보세요.</p>
           {unlocated.length > 0 && <p className="note">좌표 미등록 {unlocated.length}곳은 아래 별도 목록에서 확인할 수 있습니다.</p>}
@@ -178,7 +180,7 @@ function AtlasContent({ data }: { data: AtlasData }) {
         <div className="maptitle"><strong>{siteConfig.region.nameKo} · 산책 지도</strong><small>{siteConfig.region.nameEn} · 장소별 좌표 확인 필요</small></div>
         {selected && <PlaceDetails key={selected.id} place={selected} onClose={() => setSelection(null)}
           onShare={siteConfig.features.sharing && !customIds ? share : undefined} />}
-        <div className="legend">● 지도·카드 {places.length}곳<br />● 핀 색은 장소 카테고리<br />● 동일 좌표의 핀 간격은 화면상 구분용<br />● 강조 테두리는 선택 · 점선 테두리는 근사 좌표<br />{customIds ? '번호는 추천 방문 순서 · 보행망 경로 미계산' : route ? '━ 번호는 방문 순서 · 실선은 OSM 보행망 계산 경로' : '코스를 선택하면 OSM 보행망 경로를 표시합니다'}</div>
+        <div className="legend">● 지도·카드 {places.length}곳<br />● 핀 색은 장소 카테고리<br />● 동일 좌표의 핀 간격은 화면상 구분용<br />● 강조 테두리는 선택 · 점선 테두리는 근사 좌표<br />{customIds && !networkPath ? '번호는 추천 방문 순서 · 보행망 경로 불러오는 중 또는 미표시' : route ? '━ 번호는 방문 순서 · 실선은 OSM 보행망 계산 경로' : '코스를 선택하면 OSM 보행망 경로를 표시합니다'}</div>
       </section>
     </main>
     <div className="toast" role="status">{toast}</div>

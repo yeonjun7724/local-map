@@ -1,7 +1,8 @@
 import unittest
 import networkx as nx
 from shapely.geometry import LineString
-from generate_route_paths import generate_route, input_coordinates
+from generate_route_paths import generate_route, input_coordinates, walking_pairs
+import json
 
 
 class WalkingPathsTest(unittest.TestCase):
@@ -30,6 +31,21 @@ class WalkingPathsTest(unittest.TestCase):
         result = self.generate(["a", "b", "a"])
         self.assertEqual(result["totalDistanceM"], 600)
         self.assertEqual(len(result["segments"]), 2)
+
+    def test_pair_generation_covers_both_directions_and_excludes_missing_coordinates(self):
+        self.places["missing"] = {"longitude": "", "latitude": ""}
+        pairs = walking_pairs(self.graph, self.places, 4.5, 100)
+        self.assertEqual(len(pairs), 2)
+        for ids in [["a", "b"], ["b", "a"]]:
+            key = json.dumps(ids, separators=(",", ":"))
+            self.assertEqual(pairs[key]["placeIds"], ids)
+            self.assertEqual(pairs[key]["status"], "ready")
+
+    def test_pair_generation_respects_directed_edges(self):
+        self.graph.remove_edge(3, 2)
+        pairs = walking_pairs(self.graph, self.places, 4.5, 100)
+        self.assertEqual(pairs['["a","b"]']["status"], "ready")
+        self.assertEqual(pairs['["b","a"]']["segments"][0]["reason"], "no_walking_path")
 
     def test_coincident_places_are_unavailable_not_zero_meters(self):
         self.places["b"] = self.places["a"].copy()

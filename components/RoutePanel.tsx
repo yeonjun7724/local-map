@@ -13,15 +13,17 @@ type Props = {
   pathsMeta?: RoutePaths;
   filtered?: boolean;
   custom?: boolean;
+  networkState?: 'idle' | 'loading' | 'ready' | 'error';
+  onRetry?: () => void;
 };
 
-export default function RoutePanel({ route, places, locale, onLocaleChange, onSelectPlace, onClear, path, pathsMeta, filtered = false, custom = false }: Props) {
+export default function RoutePanel({ route, places, locale, onLocaleChange, onSelectPlace, onClear, path, pathsMeta, filtered = false, custom = false, networkState, onRetry }: Props) {
   const t = getMessages(locale);
   const byId = new Map(places.map(place => [place.id, place]));
   const totalsAvailable = path?.status === 'ready' && !filtered;
   const unavailable = filtered ? t.route.hiddenByFilter : t.route.notCalculated;
   return <section className="course route-panel" aria-labelledby="route-title" lang={locale}>
-    <p className="route-straight-notice">{custom ? t.recommend.notice : t.route.networkNotice}</p>
+    <p className="route-straight-notice">{custom && !path ? t.recommend.notice : t.route.networkNotice}</p>
     <div className="route-toolbar">
       <div className="route-languages" role="group" aria-label="코스 표시 언어">
         <button type="button" aria-pressed={locale === 'ko'} onClick={() => onLocaleChange('ko')}>한국어</button>
@@ -31,8 +33,9 @@ export default function RoutePanel({ route, places, locale, onLocaleChange, onSe
     </div>
     <h2 id="route-title">{locale === 'ko' ? route.titleKo : route.titleEn}</h2>
     <p className="course-description">{locale === 'ko' ? route.descriptionKo : route.descriptionEn}</p>
-    <p className="network-status" role="status">{custom ? t.recommend.customDescription : !path || path.status === 'unavailable' ? t.route.networkUnavailable
+    <p className="network-status" role="status">{networkState === 'loading' ? t.route.networkLoading : networkState === 'error' ? t.route.networkFailed : !path || path.status === 'unavailable' ? t.route.networkUnavailable
       : path.status === 'partial' ? t.route.networkPartial : t.route.networkReady}</p>
+    {networkState === 'error' && onRetry && <button type="button" className="retry-route" onClick={onRetry}>{t.route.retry}</button>}
     {filtered && <p className="note">{t.route.networkFiltered}</p>}
     <dl className="route-metrics">
       <div><dt>{t.route.distance}</dt><dd>{totalsAvailable ? `${Math.round(path!.totalDistanceM!)} m` : unavailable}</dd></div>
