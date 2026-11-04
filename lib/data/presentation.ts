@@ -12,7 +12,10 @@ export function visiblePlaces(data: AtlasData, routeId: string): MapPlace[] {
   if (route) {
     const byId = new Map(data.places.map(place => [place.id, place]));
     // A start/end revisit stays in the itinerary but needs only one card and pin.
-    return [...new Set(route.placeIds)].map(placeId => decorate(byId.get(placeId)!));
+    return [...new Set(route.placeIds)].map(placeId => ({
+      ...decorate(byId.get(placeId)!),
+      visitNumbers: route.placeIds.flatMap((id, index) => id === placeId ? [index + 1] : []),
+    }));
   }
   return data.places.map(decorate);
 }

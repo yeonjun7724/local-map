@@ -29,6 +29,7 @@ test('approved round trip keeps four visits with only three unique cards and pin
   assert.equal(route.placeIds.length, 4);
   assert.equal(route.placeIds[0], route.placeIds.at(-1));
   assert.deepEqual(visiblePlaces(data, route.routeId).map(place => place.id), route.placeIds.slice(0, -1));
+  assert.deepEqual(visiblePlaces(data, route.routeId)[0].visitNumbers, [1, 4]);
 });
 
 test('interior duplicates remain invalid even when endpoints match', () => {

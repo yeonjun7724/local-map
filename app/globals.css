@@ -14,7 +14,9 @@
 .coordinate-note{font-size:11px!important;overflow-wrap:anywhere}
 .maplibregl-popup-content{border-radius:12px;padding:12px 16px;color:var(--ink);font-family:inherit}
 .maplibregl-popup-content p{margin:5px 0 0;font-size:11px}
-.pin.selected span{display:none}
+.pin.selected .pin-label{display:none}
+.pin .pin-order{display:inline-flex;align-items:center;justify-content:center;position:absolute;top:-11px;right:-10px;left:auto;transform:none;min-width:22px;height:22px;padding:0 4px;border:2px solid white;border-radius:12px;background:var(--ink);color:white;white-space:nowrap;font-size:10px;line-height:1;font-weight:bold}
+.route-line-note{font-size:11px;font-weight:bold;color:var(--green);margin-top:12px!important}
 .pin .pin-label{display:none;max-width:200px;width:max-content;white-space:normal;text-align:center;line-height:1.5;font-size:12px;background:#fff;border:1px solid #dce5da;box-shadow:0 4px 16px #203d3420}
 .tabs button{flex:1 1 140px}
 .route-itinerary{padding-left:22px;margin:15px 0 0;font-size:12px;line-height:1.9}

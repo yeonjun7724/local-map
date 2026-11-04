@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Map as LibreMap } from 'maplibre-gl';
+import type { FeatureCollection, LineString } from 'geojson';
 import type { MapPlace } from '@/lib/data/types';
 import { coordinateLabel, groupMapPlaces } from '@/lib/data/presentation';
 import { siteConfig } from '@/config/site';
@@ -10,13 +11,14 @@ import { categoryIcons } from '@/lib/icons';
 
 type Props = {
   places: MapPlace[];
+  routeLine: FeatureCollection<LineString>;
   selectedPlaceId: string | null;
   onSelectPlace: (id: string) => void;
   center: [number, number];
 };
 
 // Receives validated places and selection; owns only the map's rendering lifecycle.
-export default function MapView({ places, selectedPlaceId, onSelectPlace, center }: Props) {
+export default function MapView({ places, routeLine, selectedPlaceId, onSelectPlace, center }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<LibreMap | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -72,6 +74,29 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
   }, [center, attempt]);
 
   useEffect(() => {
+    if (!map || routeLine.features.length === 0) return;
+    map.addSource('straight-route', { type: 'geojson', data: routeLine });
+    const before = map.getStyle().layers?.find(layer => layer.type === 'symbol')?.id;
+    map.addLayer({
+      id: 'straight-route-casing', type: 'line', source: 'straight-route',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#ffffff', 'line-width': 7, 'line-opacity': 0.85 },
+    }, before);
+    map.addLayer({
+      id: 'straight-route-line', type: 'line', source: 'straight-route',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#26765b', 'line-width': 3.5, 'line-dasharray': [2, 2] },
+    }, before);
+    return () => {
+      if (!map.getStyle()) return;
+      for (const id of ['straight-route-line', 'straight-route-casing']) {
+        if (map.getLayer(id)) map.removeLayer(id);
+      }
+      if (map.getSource('straight-route')) map.removeSource('straight-route');
+    };
+  }, [map, routeLine]);
+
+  useEffect(() => {
     if (!map) return;
     let cancelled = false;
     const markers: import('maplibre-gl').Marker[] = [];
@@ -96,6 +121,15 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
           label.setAttribute('aria-hidden', 'true');
           label.textContent = place.nameKo;
           button.append(label);
+          if (place.visitNumbers?.length) {
+            const order = document.createElement('span');
+            order.className = 'pin-order';
+            order.textContent = place.visitNumbers.join('·');
+            order.setAttribute('aria-hidden', 'true');
+            button.append(order);
+            const description = button.getAttribute('aria-description');
+            button.setAttribute('aria-description', [description, `방문 순서 ${place.visitNumbers.join('·')}`].filter(Boolean).join(' '));
+          }
           button.onclick = () => onSelectPlace(place.id);
           // Pixel spacing only: every marker keeps the original geographic coordinate.
           const angle = index * Math.PI * 2 / group.length - Math.PI / 2;
@@ -138,10 +172,16 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
         padding: { top: 90, bottom: 330, left: 60, right: 60 },
         duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700,
       });
+    } else if (routeLine.features.length > 0) {
+      const points = routeLine.features.flatMap(feature => feature.geometry.coordinates);
+      map.fitBounds([
+        [Math.min(...points.map(point => point[0])), Math.min(...points.map(point => point[1]))],
+        [Math.max(...points.map(point => point[0])), Math.max(...points.map(point => point[1]))],
+      ], { padding: { top: 150, bottom: 100, left: 70, right: 70 }, maxZoom: siteConfig.region.zoom, duration: 0 });
     } else {
       map.jumpTo({ center, zoom: siteConfig.region.zoom, padding: { top: 0, bottom: 0, left: 0, right: 0 } });
     }
-  }, [map, places, selectedPlaceId, center]);
+  }, [map, places, routeLine, selectedPlaceId, center]);
 
   function showAllPins() {
     if (!map) return;

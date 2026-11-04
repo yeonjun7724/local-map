@@ -8,6 +8,7 @@ import { siteConfig } from '@/config/site';
 import PlaceCard from './PlaceCard';
 import { filterPlaces } from '@/lib/data/filter';
 import PlaceDetails from './PlaceDetails';
+import { buildStraightRoute } from '@/lib/data/route';
 
 const MapView = dynamic(() => import('./map/MapView'), {
   ssr: false,
@@ -39,6 +40,7 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
   // Exactly this one array is used by cards, count, and map pins.
   const places = useMemo(() => filtered.filter(place => place.latitude !== null && place.longitude !== null), [filtered]);
   const unlocated = useMemo(() => filtered.filter(place => place.latitude === null || place.longitude === null), [filtered]);
+  const straightRoute = useMemo(() => buildStraightRoute(route?.placeIds ?? [], places), [route, places]);
   const selected = places.find(place => selection?.routeId === viewId && place.id === selection.placeId) ?? null;
   const center = siteConfig.region.center;
   const selectPlace = useCallback((placeId: string) => {
@@ -100,6 +102,9 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
               {route.placeIds.map((placeId, index) => <li key={`${index}-${placeId}`}>{byId.get(placeId)!.nameKo}</li>)}
             </ol>
             <p className="note">방문 {route.placeIds.length}회 · 장소 {candidates.length}곳. 지도와 카드는 동일 장소의 재방문을 중복 표시하지 않습니다.</p>
+            <p className="route-line-note">점선은 방문 순서의 직선 연결이며 실제 길이 아닙니다.</p>
+            {straightRoute.missingLegs > 0 && <p className="note">좌표가 없거나 필터로 숨긴 장소가 있는 {straightRoute.missingLegs}개 구간은 연결하지 않습니다.</p>}
+            {straightRoute.coincidentLegs > 0 && <p className="note">동일 좌표의 {straightRoute.coincidentLegs}개 구간은 선이 한 점으로 겹칩니다. 시설별 위치 확인이 필요합니다.</p>}
           </>}
           {unlocated.length > 0 && <p className="note">좌표 미등록 {unlocated.length}곳은 아래 별도 목록에서 확인할 수 있습니다.</p>}
         </section>
@@ -141,11 +146,11 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
         <p className="note">ⓘ {route ? '위 순서는 기획 방문 순서이며, 실제 보행 동선은 미검증입니다.' : '장소 목록은 방문 순서가 아닙니다.'} 실제 위치·운영 여부는 방문 전 확인해주세요.</p>
       </aside>
       <section className="map" aria-label={`${siteConfig.region.nameKo} 실제 지도`}>
-        <MapView places={places} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
+        <MapView places={places} routeLine={straightRoute.geojson} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
         <div className="maptitle"><strong>{siteConfig.region.nameKo} · 산책 지도</strong><small>{siteConfig.region.nameEn} · 장소별 좌표 확인 필요</small></div>
         {selected && <PlaceDetails key={selected.id} place={selected} onClose={() => setSelection(null)}
           onShare={siteConfig.features.sharing ? share : undefined} />}
-        <div className="legend">● 지도·카드 {places.length}곳<br />● 핀 색은 장소 카테고리<br />● 동일 좌표의 핀 간격은 화면상 구분용<br />● 강조 테두리는 선택 · 점선은 근사 좌표<br />실제 도보 경로는 제공하지 않습니다</div>
+        <div className="legend">● 지도·카드 {places.length}곳<br />● 핀 색은 장소 카테고리<br />● 동일 좌표의 핀 간격은 화면상 구분용<br />● 강조 테두리는 선택 · 점선 테두리는 근사 좌표<br />{route ? '┄ 번호는 방문 순서 · 점선은 직선 연결(실제 길 아님)' : '코스를 선택하면 방문 순서를 직선으로 연결합니다'}</div>
       </section>
     </main>
     <div className="toast" role="status">{toast}</div>
