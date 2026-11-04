@@ -20,6 +20,8 @@ data/
   places.csv                 장소·좌표·출처·검증 상태
   routes.json                기존 3개 테마와 후보 장소 ID
   categories.json            분류 ID·이름·아이콘
+config/
+  site.ts                    브랜드·지역·지도·기능·언어 설정
 lib/data/
   load.ts                    서버 파일 읽기 → 검증 호출
   parse.ts                   CSV/JSON 파싱·검증
@@ -53,10 +55,29 @@ map-draft.html               이전 단일 HTML 초안 보관
 - `coordinateStatus`: `missing`(좌표 없음), `approximate`(근사치), `unverified`(제공됐으나 미검증), `verified`(별도 검증 완료).
 - 좌표 미등록 장소는 목록에 유지하고 마커를 표시하지 않습니다. 애수교는 원본의 근사 좌표를 점선 마커로 표시합니다. 나머지 제공 좌표도 검증 완료로 승격하지 않았습니다.
 - 출처·라이선스·운영시간 등 원본 정보를 유지합니다. 빈 값은 임의로 채우지 않습니다.
-- CSV의 `category`와 `categories.json`의 ID, 테마의 장소 ID가 일치해야 합니다.
-- 지도 시작 위치는 `ilsan-lake-park` 행의 제공 좌표이며, 선택 테마는 URL 해시로 공유합니다.
+- CSV의 `category`는 `categories.json`의 `categories[].id`, 비어 있지 않은 `theme`은 `themes[].id`와 일치해야 합니다. 코스 ID도 등록된 theme ID여야 합니다.
+- 지도 시작 위치와 줌은 `config/site.ts`의 `region.center`, `region.zoom`이며, 선택 테마는 URL 해시로 공유합니다. 전체 보기에서는 모든 장소를 포함하도록 범위를 조정합니다.
 
 데이터 변경은 개발 서버에서 새로고침하거나 프로덕션을 다시 빌드해 반영합니다. 보관용 `raw/`와 `map-draft.html`은 앱 변경이 자동 반영되지 않습니다.
+
+## 서비스 설정과 기획안 분류
+
+`config/site.ts`에서 서비스명, 한영 소개, 지역명과 지도 중심점을 수정할 수 있습니다. 초기값은 호수산책, 일산 호수공원 일대이며 중심점은 기존 CSV의 공원 대표 좌표 `[126.76890828, 37.65528473]`, 줌은 15.5입니다. 이 좌표가 개별 시설 위치의 현장 검증을 뜻하지는 않습니다. 기존 지도 스타일·기능·한국어 기본 설정은 각각 `map`, `features`, `languages`로 옮겼습니다.
+
+`data/categories.json`은 `{ "categories": [...], "themes": [...] }` 형식입니다. 분류에는 `id`, `nameKo`, `nameEn`, `color`(`#RRGGBB`), `icon`(Lucide 이름), 테마에는 `id`, `nameKo`, `nameEn`을 넣습니다. 사용하는 아이콘은 `lib/icons.ts`에 명시적으로 등록하며 등록되지 않은 아이콘은 데이터 검사에서 오류로 처리합니다. 색상과 아이콘은 목록과 지도에 반영됩니다.
+
+`raw/planning.md`의 분류 13개·테마 3개를 추가했습니다. 기존 CSV를 유지하기 위해 기존 분류 4개·테마 4개도 함께 등록했습니다. CSV 값을 변경하지 않았으며, 새 분류로 장소를 다시 나누는 작업은 포함하지 않습니다. 기획안 ID만 남길 경우 영향받는 행은 다음과 같습니다(헤더 포함 CSV 행 번호).
+
+| 종류 | 기존 ID | 영향 행 | 건수 |
+| --- | --- | --- | ---: |
+| category | nature | 2, 7–8, 32–45 | 17 |
+| category | landmark | 3–6, 9–14 | 10 |
+| category | cafe | 15–25 | 11 |
+| category | food | 26–31 | 6 |
+| theme | nature-rest | 2, 5–8 | 5 |
+| theme | landmark | 3–4, 9–14 | 8 |
+| theme | cafe-alley | 15–25 | 11 |
+| theme | local-food | 26–31 | 6 |
 
 ## 검사
 

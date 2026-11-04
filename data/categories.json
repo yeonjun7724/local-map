@@ -1,22 +1,160 @@
-﻿[
+{
+  "categories": [
     {
-        "label":  "자연",
-        "icon":  "♧",
-        "id":  "nature"
+      "id": "garden",
+      "nameKo": "정원",
+      "nameEn": "Garden",
+      "color": "#4B7C59",
+      "icon": "Clover"
     },
     {
-        "label":  "명소",
-        "icon":  "◇",
-        "id":  "landmark"
+      "id": "forest-trail",
+      "nameKo": "숲길",
+      "nameEn": "Forest Trail",
+      "color": "#386B48",
+      "icon": "TreePine"
     },
     {
-        "label":  "카페",
-        "icon":  "☕",
-        "id":  "cafe"
+      "id": "waterfront",
+      "nameKo": "수변 경관",
+      "nameEn": "Waterfront",
+      "color": "#387C98",
+      "icon": "Waves"
     },
     {
-        "label":  "음식점",
-        "icon":  "◒",
-        "id":  "food"
+      "id": "flower-garden",
+      "nameKo": "꽃정원",
+      "nameEn": "Flower Garden",
+      "color": "#AA4878",
+      "icon": "Flower2"
+    },
+    {
+      "id": "bridge-view",
+      "nameKo": "다리·경관",
+      "nameEn": "Bridge & Scenery",
+      "color": "#7A6850",
+      "icon": "Bridge"
+    },
+    {
+      "id": "plaza",
+      "nameKo": "광장",
+      "nameEn": "Plaza",
+      "color": "#946E30",
+      "icon": "Landmark"
+    },
+    {
+      "id": "nature-learning",
+      "nameKo": "자연학습",
+      "nameEn": "Nature Learning",
+      "color": "#557B35",
+      "icon": "Leaf"
+    },
+    {
+      "id": "plant-exhibition",
+      "nameKo": "식물 관찰·전시",
+      "nameEn": "Plant Exhibition",
+      "color": "#477A62",
+      "icon": "Sprout"
+    },
+    {
+      "id": "outdoor-art",
+      "nameKo": "야외 조형물",
+      "nameEn": "Outdoor Art",
+      "color": "#795AB1",
+      "icon": "Palette"
+    },
+    {
+      "id": "playground",
+      "nameKo": "어린이 놀이터",
+      "nameEn": "Playground",
+      "color": "#B8672E",
+      "icon": "Shapes"
+    },
+    {
+      "id": "fountain-photo-spot",
+      "nameKo": "분수·포토스팟",
+      "nameEn": "Fountain & Photo Spot",
+      "color": "#356CA0",
+      "icon": "Camera"
+    },
+    {
+      "id": "viewpoint",
+      "nameKo": "전망",
+      "nameEn": "Viewpoint",
+      "color": "#676CA0",
+      "icon": "Mountain"
+    },
+    {
+      "id": "walking-trail",
+      "nameKo": "산책로",
+      "nameEn": "Walking Trail",
+      "color": "#577954",
+      "icon": "Footprints"
+    },
+    {
+      "id": "nature",
+      "nameKo": "자연",
+      "nameEn": "Nature",
+      "color": "#26765B",
+      "icon": "Trees"
+    },
+    {
+      "id": "landmark",
+      "nameKo": "명소",
+      "nameEn": "Landmark",
+      "color": "#376B84",
+      "icon": "MapPin"
+    },
+    {
+      "id": "cafe",
+      "nameKo": "카페",
+      "nameEn": "Cafe",
+      "color": "#8C593D",
+      "icon": "Coffee"
+    },
+    {
+      "id": "food",
+      "nameKo": "음식점",
+      "nameEn": "Restaurant",
+      "color": "#A44D3B",
+      "icon": "Utensils"
     }
-]
+  ],
+  "themes": [
+    {
+      "id": "lake-garden",
+      "nameKo": "호수·정원 산책",
+      "nameEn": "Lake & Garden Walk"
+    },
+    {
+      "id": "nature-play",
+      "nameKo": "자연 관찰·놀이",
+      "nameEn": "Nature & Play Adventure"
+    },
+    {
+      "id": "family-walk",
+      "nameKo": "가족 나들이·포토스팟",
+      "nameEn": "Family Photo Walk"
+    },
+    {
+      "id": "nature-rest",
+      "nameKo": "자연·휴식",
+      "nameEn": "Nature & Rest"
+    },
+    {
+      "id": "landmark",
+      "nameKo": "주요 명소",
+      "nameEn": "Landmarks"
+    },
+    {
+      "id": "cafe-alley",
+      "nameKo": "카페 탐방",
+      "nameEn": "Cafe Visits"
+    },
+    {
+      "id": "local-food",
+      "nameKo": "동네 음식점",
+      "nameEn": "Local Dining"
+    }
+  ]
+}

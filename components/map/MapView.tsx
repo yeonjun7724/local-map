@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { Map as LibreMap } from 'maplibre-gl';
 import type { MapPlace } from '@/lib/data/types';
 import { coordinateLabel, groupMapPlaces } from '@/lib/data/presentation';
+import { siteConfig } from '@/config/site';
+import { createElement as createLucideElement } from 'lucide';
+import { categoryIcons } from '@/lib/icons';
 
 type Props = {
   places: MapPlace[];
@@ -30,9 +33,9 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
         if (cancelled || !container.current) return;
         libre.setWorkerUrl(new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url).toString());
         instance = new libre.Map({
+          ...siteConfig.map,
           container: container.current,
-          style: 'https://tiles.openfreemap.org/styles/liberty',
-          center, zoom: 14.5, attributionControl: false,
+          center, zoom: siteConfig.region.zoom,
         });
         instance.addControl(new libre.NavigationControl(), 'top-right');
         instance.addControl(new libre.AttributionControl({ compact: false }), 'bottom-right');
@@ -85,7 +88,11 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
           ? `같은 좌표의 ${group.length}곳 선택: ${group.map(item => item.nameKo).join(', ')}`
           : `${place.nameKo} 상세 보기, ${coordinateLabel(place)}`);
         button.setAttribute('aria-pressed', String(!!chosen));
-        button.textContent = shared ? String(group.length) : place.icon;
+        button.textContent = shared ? String(group.length) : '';
+        if (!shared) {
+          button.append(createLucideElement(categoryIcons[place.icon], { width: '20', height: '20', 'aria-hidden': 'true' }));
+          if (!chosen) button.style.backgroundColor = place.color;
+        }
         const label = document.createElement('span');
         label.textContent = shared ? `같은 좌표 ${group.length}곳` : place.nameKo;
         button.append(label);
@@ -142,12 +149,12 @@ export default function MapView({ places, selectedPlaceId, onSelectPlace, center
         map.fitBounds([
           [Math.min(...longitudes), Math.min(...latitudes)],
           [Math.max(...longitudes), Math.max(...latitudes)],
-        ], { padding: { top: 150, bottom: 100, left: 55, right: 55 }, maxZoom: 16, duration: 0 });
+        ], { padding: { top: 150, bottom: 100, left: 55, right: 55 }, maxZoom: siteConfig.region.zoom, duration: 0 });
       } else {
-        map.jumpTo({ center, zoom: 14.5, padding: { top: 0, bottom: 0, left: 0, right: 0 } });
+        map.jumpTo({ center, zoom: siteConfig.region.zoom, padding: { top: 0, bottom: 0, left: 0, right: 0 } });
       }
     } else {
-      map.jumpTo({ center, zoom: 14.5, padding: { top: 0, bottom: 0, left: 0, right: 0 } });
+      map.jumpTo({ center, zoom: siteConfig.region.zoom, padding: { top: 0, bottom: 0, left: 0, right: 0 } });
     }
   }, [map, places, selectedPlaceId, center]);
 

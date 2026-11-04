@@ -1,5 +1,6 @@
 import { parse } from 'csv-parse/sync';
 import { z } from 'zod';
+import { categoryIcons } from '../icons';
 
 const id = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, '영문 소문자·숫자·하이픈 ID가 필요합니다');
 const required = z.string().trim().min(1);
@@ -42,7 +43,14 @@ const placeSchema = z.object({
   }
 });
 
-const categorySchema = z.object({ id, label: required, icon: required }).strict();
+const categorySchema = z.object({
+  id,
+  nameKo: required,
+  nameEn: required,
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, '#RRGGBB 색상이 필요합니다'),
+  icon: required.refine(value => Object.hasOwn(categoryIcons, value), '지원하는 Lucide 아이콘 이름이 필요합니다'),
+}).strict();
+const themeSchema = z.object({ id, nameKo: required, nameEn: required }).strict();
 const routeSchema = z.object({
   id,
   label: required,
@@ -56,6 +64,7 @@ const routeSchema = z.object({
 export type ParsedPlace = z.infer<typeof placeSchema>;
 export type ParsedCategory = z.infer<typeof categorySchema>;
 export type ParsedRoute = z.infer<typeof routeSchema>;
+export type ParsedTheme = z.infer<typeof themeSchema>;
 
 function assertUnique(ids: string[], context: string) {
   const seen = new Set<string>();
@@ -100,18 +109,29 @@ function readJson(text: string, filename: string): unknown {
 
 export function parseAtlasData(csv: string, routesJson: string, categoriesJson: string) {
   const places = parsePlaces(csv);
-  const categories = z.array(categorySchema).min(1).parse(readJson(categoriesJson, 'categories.json'));
+  const { categories, themes } = z.object({
+    categories: z.array(categorySchema).min(1),
+    themes: z.array(themeSchema).min(1),
+  }).strict().parse(readJson(categoriesJson, 'categories.json'));
   const routes = z.array(routeSchema).min(1).parse(readJson(routesJson, 'routes.json'));
   assertUnique(categories.map(category => category.id), 'categories.json');
+  assertUnique(themes.map(theme => theme.id), 'categories.json themes');
   assertUnique(routes.map(route => route.id), 'routes.json');
   const categoryIds = new Set(categories.map(category => category.id));
   const placeIds = new Set(places.map(place => place.id));
+  const themeIds = new Set(themes.map(theme => theme.id));
   for (const place of places) {
     if (!categoryIds.has(place.category)) {
       throw new Error(`places.csv '${place.id}': 미등록 category '${place.category}'`);
     }
+    if (place.theme && !themeIds.has(place.theme)) {
+      throw new Error(`places.csv '${place.id}': 미등록 theme '${place.theme}'`);
+    }
   }
   for (const route of routes) {
+    if (!themeIds.has(route.id)) {
+      throw new Error(`routes.json '${route.id}': 미등록 theme`);
+    }
     assertUnique(route.stops.map(stop => stop.placeId), `routes.json '${route.id}' 후보`);
     for (const stop of route.stops) {
       if (!placeIds.has(stop.placeId)) {
@@ -119,5 +139,5 @@ export function parseAtlasData(csv: string, routesJson: string, categoriesJson: 
       }
     }
   }
-  return { places, routes, categories };
+  return { places, routes, categories, themes };
 }

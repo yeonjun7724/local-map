@@ -18,6 +18,7 @@
 .tabs{flex-wrap:wrap}.tabs button{min-width:65px}
 .pin.shared{background:#376b84}
 .pin.shared.selected{background:#ecad49}
+.pin svg{display:block;margin:auto}
 .shared-place-choices{display:grid;gap:5px;margin-top:9px;max-height:145px;overflow:auto}
 .shared-place-choices button{border:1px solid #dce5da;background:#fff;border-radius:6px;padding:7px;text-align:left;color:var(--ink);font-size:12px}
 .shared-place-choices button[aria-pressed=true]{background:#edf4eb;font-weight:bold}

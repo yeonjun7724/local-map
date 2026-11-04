@@ -29,6 +29,38 @@ test('real sources resolve every route and category without manufacturing coordi
   assert.equal(result.places.find(place => place.id === 'aesugyo')!.coordinateStatus, 'approximate');
 });
 
+test('planning categories and themes coexist with all existing CSV IDs', () => {
+  const data = parseAtlasData(csv, routes, categories);
+  const categoryIds = new Set(data.categories.map(category => category.id));
+  const themeIds = new Set(data.themes.map(theme => theme.id));
+  for (const id of ['garden', 'forest-trail', 'waterfront', 'flower-garden', 'bridge-view',
+    'plaza', 'nature-learning', 'plant-exhibition', 'outdoor-art', 'playground',
+    'fountain-photo-spot', 'viewpoint', 'walking-trail']) assert.ok(categoryIds.has(id));
+  for (const id of ['lake-garden', 'nature-play', 'family-walk']) assert.ok(themeIds.has(id));
+  assert.ok(data.places.every(place => categoryIds.has(place.category) && (!place.theme || themeIds.has(place.theme))));
+});
+
+test('rejects unknown CSV themes and routes without a registered theme', () => {
+  assert.throws(() => parseAtlasData(fixture({ theme: 'unknown' }), routes, categories), /미등록 theme/);
+  const catalog = JSON.parse(categories.replace(/^\uFEFF/, ''));
+  catalog.themes = catalog.themes.filter((theme: { id: string }) => theme.id !== 'lake-garden');
+  assert.throws(() => parseAtlasData(csv, routes, JSON.stringify(catalog)), /미등록 theme/);
+});
+
+test('rejects invalid category colors, icon names and missing English names', () => {
+  for (const changes of [{ color: '#abc' }, { icon: 'NotALucideIcon' }, { nameEn: '' }]) {
+    const catalog = JSON.parse(categories.replace(/^\uFEFF/, ''));
+    Object.assign(catalog.categories[0], changes);
+    assert.throws(() => parseAtlasData(csv, routes, JSON.stringify(catalog)));
+  }
+});
+
+test('rejects duplicate theme IDs', () => {
+  const catalog = JSON.parse(categories.replace(/^\uFEFF/, ''));
+  catalog.themes.push(catalog.themes[0]);
+  assert.throws(() => parseAtlasData(csv, routes, JSON.stringify(catalog)), /중복 ID/);
+});
+
 test('default and all views include every CSV place, including places outside routes', () => {
   const data = parseAtlasData(csv, routes, categories);
   for (const view of ['', 'all', 'unknown']) {

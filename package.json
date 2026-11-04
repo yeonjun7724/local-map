@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "csv-parse": "^7.0.3",
+    "lucide": "^1.67.0",
     "maplibre-gl": "^6.16.0",
     "next": "16.4.5",
     "react": "19.3.1",
