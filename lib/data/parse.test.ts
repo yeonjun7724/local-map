@@ -1,0 +1,77 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+import { parseAtlasData, parsePlaces } from './parse';
+
+const csv = readFileSync(new URL('../../data/places.csv', import.meta.url), 'utf8');
+const routes = readFileSync(new URL('../../data/routes.json', import.meta.url), 'utf8');
+const categories = readFileSync(new URL('../../data/categories.json', import.meta.url), 'utf8');
+
+function fixture(changes: Record<string, string> = {}) {
+  const record = {
+    id: 'test-place', nameKo: '장소', nameEn: '', latitude: '', longitude: '',
+    category: 'nature', theme: '', descriptionKo: '쉼표, 따옴표 "포함"\n두 줄 설명', descriptionEn: '',
+    address: '', imageUrl: '', source: '사용자 자료', license: '', openingHours: '', tags: '',
+    externalUrl: '', recommendedDurationMinutes: '', updatedAt: '', isSample: 'FALSE',
+    coordinateStatus: 'missing', ...changes,
+  };
+  const escape = (value: string) => '"' + value.replaceAll('"', '""') + '"';
+  return '\uFEFF' + Object.keys(record).join(',') + '\r\n' + Object.values(record).map(escape).join(',') + '\r\n';
+}
+
+test('real sources resolve every route and category without manufacturing coordinates', () => {
+  const result = parseAtlasData(csv, routes, categories);
+  assert.ok(result.routes.every(route => route.stops.every(stop => result.places.some(place => place.id === stop.placeId))));
+  const missing = result.places.find(place => place.id === 'traditional-garden')!;
+  assert.equal(missing.latitude, null);
+  assert.equal(missing.longitude, null);
+  assert.equal(result.places.find(place => place.id === 'aesugyo')!.coordinateStatus, 'approximate');
+});
+
+test('handles BOM, quoted commas, escaped quotes, and multiline CSV', () => {
+  const [place] = parsePlaces(fixture());
+  assert.equal(place.descriptionKo, '쉼표, 따옴표 "포함"\n두 줄 설명');
+  assert.equal(place.isSample, false);
+});
+
+test('rejects a missing required header even without records', () => {
+  assert.throws(() => parsePlaces('id,nameKo\n'), /헤더/);
+});
+
+test('rejects malformed CSV, duplicate headers and duplicate IDs', () => {
+  assert.throws(() => parsePlaces(fixture().replace('"사용자 자료"', '"미완성')));
+  assert.throws(() => parsePlaces(fixture().replace('nameEn', 'nameKo')), /중복/);
+  const first = fixture();
+  assert.throws(() => parsePlaces(first + first.slice(first.indexOf('\r\n') + 2)), /중복 ID/);
+});
+
+test('rejects half-filled, nonnumeric, infinite, out-of-range or swapped coordinates', () => {
+  const cases: Record<string, string>[] = [
+    { latitude: '37.65' },
+    { latitude: 'NaN', longitude: '126.76' },
+    { latitude: 'Infinity', longitude: '126.76' },
+    { latitude: '126.76', longitude: '37.65' },
+    { latitude: '37.65', longitude: '181' },
+  ];
+  for (const changes of cases) assert.throws(() => parsePlaces(fixture({ ...changes, coordinateStatus: 'unverified' })));
+});
+
+test('rejects contradictory coordinate status', () => {
+  assert.throws(() => parsePlaces(fixture({ coordinateStatus: 'verified' })), /좌표 유무/);
+  assert.throws(() => parsePlaces(fixture({ latitude: '37', longitude: '126' })), /좌표 유무/);
+});
+
+test('rejects dangling categories and route references', () => {
+  assert.throws(() => parseAtlasData(fixture({ category: 'unknown' }), routes, categories), /미등록 category/);
+  const brokenRoutes = JSON.stringify([{ ...JSON.parse(routes.replace(/^\uFEFF/, ''))[0], stops: [
+    { placeId: 'absent', description: '설명', icon: '♧' },
+  ] }]);
+  assert.throws(() => parseAtlasData(fixture(), brokenRoutes, categories), /없는 장소/);
+});
+
+test('rejects malformed JSON, duplicate routes and duplicate candidates', () => {
+  assert.throws(() => parseAtlasData(csv, '{', categories), /올바른 JSON/);
+  const route = JSON.parse(routes.replace(/^\uFEFF/, ''))[0];
+  assert.throws(() => parseAtlasData(csv, JSON.stringify([route, route]), categories), /중복 ID/);
+  assert.throws(() => parseAtlasData(csv, JSON.stringify([{ ...route, stops: [route.stops[0], route.stops[0]] }]), categories), /중복 ID/);
+});

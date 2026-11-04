@@ -1,0 +1,22 @@
+﻿[
+    {
+        "label":  "자연",
+        "icon":  "♧",
+        "id":  "nature"
+    },
+    {
+        "label":  "명소",
+        "icon":  "◇",
+        "id":  "landmark"
+    },
+    {
+        "label":  "카페",
+        "icon":  "☕",
+        "id":  "cafe"
+    },
+    {
+        "label":  "음식점",
+        "icon":  "◒",
+        "id":  "food"
+    }
+]
