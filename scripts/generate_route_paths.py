@@ -49,7 +49,7 @@ def path_geometry(graph, nodes):
     return coordinates, distance
 
 
-def generate_route(graph, route, places, speed, max_snap, snaps=None):
+def generate_route(graph, route, places, speed, max_snap):
     ids = route["placeIds"]
     coordinates = input_coordinates(route, places)
     segments = []
@@ -64,8 +64,8 @@ def generate_route(graph, route, places, speed, max_snap, snaps=None):
             segment["reason"] = "coincident_coordinates"
         else:
             try:
-                origin, origin_distance = snaps[from_id] if snaps is not None else ox.distance.nearest_nodes(graph, X=a[0], Y=a[1], return_dist=True)
-                destination, destination_distance = snaps[to_id] if snaps is not None else ox.distance.nearest_nodes(graph, X=b[0], Y=b[1], return_dist=True)
+                origin, origin_distance = ox.distance.nearest_nodes(graph, X=a[0], Y=a[1], return_dist=True)
+                destination, destination_distance = ox.distance.nearest_nodes(graph, X=b[0], Y=b[1], return_dist=True)
                 segment["fromSnapDistanceM"] = round(float(origin_distance), 1)
                 segment["toSnapDistanceM"] = round(float(destination_distance), 1)
                 if max(origin_distance, destination_distance) > max_snap:
@@ -98,29 +98,12 @@ def generate_route(graph, route, places, speed, max_snap, snaps=None):
             "segments": segments, "geometry": geometry}
 
 
-def walking_pairs(graph, places, speed, max_snap):
-    """Both directions are routed independently; never reverse a one-way path."""
-    ids = [place_id for place_id in places if input_coordinates({"placeIds": [place_id]}, places)[0] is not None]
-    points = [input_coordinates({"placeIds": [place_id]}, places)[0] for place_id in ids]
-    nodes, distances = ox.distance.nearest_nodes(graph, X=[p[0] for p in points], Y=[p[1] for p in points], return_dist=True)
-    snaps = dict(zip(ids, zip(nodes, distances)))
-    result = {}
-    for origin in ids:
-        for destination in ids:
-            if origin == destination:
-                continue
-            key = json.dumps([origin, destination], ensure_ascii=False, separators=(",", ":"))
-            result[key] = generate_route(graph, {"routeId": key, "placeIds": [origin, destination]}, places, speed, max_snap, snaps)
-    return result
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--walking-speed-kmh", type=float, default=4.5)
     parser.add_argument("--max-snap-m", type=float, default=100)
     parser.add_argument("--graph", type=Path, default=ROOT / ".cache/routing/walk.graphml")
     parser.add_argument("--refresh", action="store_true")
-    parser.add_argument("--pairs", action="store_true", help="Generate all directed place pairs for recommended routes")
     parser.add_argument("--overpass-url", default="https://overpass-api.de/api")
     args = parser.parse_args()
     if args.walking_speed_kmh <= 0 or args.max_snap_m <= 0:
@@ -135,7 +118,7 @@ def main():
         for place_id in route["placeIds"]:
             if place_id not in places:
                 raise ValueError(f"Unknown place: {place_id}")
-    points = [point for route in ([{"placeIds": list(places)}] if args.pairs else routes) for point in input_coordinates(route, places) if point]
+    points = [point for route in routes for point in input_coordinates(route, places) if point]
     if not points:
         raise ValueError("No route coordinates")
     ox.settings.use_cache = True
@@ -159,17 +142,13 @@ def main():
               "license": "ODbL 1.0", "walkingSpeedKmh": args.walking_speed_kmh,
               "networkType": "walk", "graphRetrievedAt": graph_date,
               "maxSnapDistanceM": args.max_snap_m, "osmnxVersion": ox.__version__, "routes": {}}
-    if args.pairs:
-        output["routes"] = walking_pairs(graph, places, args.walking_speed_kmh, args.max_snap_m)
-        print(f"Generated {len(output['routes'])} directed walking pairs", flush=True)
-    else:
-        for route in routes:
-            result = generate_route(graph, route, places, args.walking_speed_kmh, args.max_snap_m)
-            output["routes"][route["routeId"]] = result
-            print(f"{route['routeId']}: {result['status']} ({sum(s['status'] == 'ready' for s in result['segments'])}/{len(result['segments'])} legs)", flush=True)
-    destination = ROOT / ("data/walking-paths.json" if args.pairs else "data/route-paths.json")
+    for route in routes:
+        result = generate_route(graph, route, places, args.walking_speed_kmh, args.max_snap_m)
+        output["routes"][route["routeId"]] = result
+        print(f"{route['routeId']}: {result['status']} ({sum(s['status'] == 'ready' for s in result['segments'])}/{len(result['segments'])} legs)", flush=True)
+    destination = ROOT / "data/route-paths.json"
     temporary = destination.with_suffix(".json.tmp")
-    temporary.write_text(json.dumps(output, ensure_ascii=False, indent=None if args.pairs else 2, allow_nan=False) + "\n", encoding="utf-8")
+    temporary.write_text(json.dumps(output, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     temporary.replace(destination)
     print(f"Saved {destination}", flush=True)
 

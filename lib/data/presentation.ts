@@ -1,6 +1,6 @@
 import type { AtlasData, MapPlace, Place } from './types';
 
-export function visiblePlaces(data: AtlasData, routeId: string, customIds?: string[]): MapPlace[] {
+export function visiblePlaces(data: AtlasData, routeId: string): MapPlace[] {
   const byCategory = new Map(data.categories.map(category => [category.id, category]));
   const decorate = (place: Place): MapPlace => ({
     ...place,
@@ -9,13 +9,12 @@ export function visiblePlaces(data: AtlasData, routeId: string, customIds?: stri
     categoryNameKo: byCategory.get(place.category)!.nameKo,
   });
   const route = data.routes.find(item => item.routeId === routeId);
-  const placeIds = customIds ?? route?.placeIds;
-  if (placeIds) {
+  if (route) {
     const byId = new Map(data.places.map(place => [place.id, place]));
     // A start/end revisit stays in the itinerary but needs only one card and pin.
-    return [...new Set(placeIds)].filter(id => byId.has(id)).map(placeId => ({
+    return [...new Set(route.placeIds)].map(placeId => ({
       ...decorate(byId.get(placeId)!),
-      visitNumbers: placeIds.flatMap((id, index) => id === placeId ? [index + 1] : []),
+      visitNumbers: route.placeIds.flatMap((id, index) => id === placeId ? [index + 1] : []),
     }));
   }
   return data.places.map(decorate);
