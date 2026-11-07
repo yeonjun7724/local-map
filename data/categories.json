@@ -102,8 +102,8 @@
       "id": "landmark",
       "nameKo": "명소",
       "nameEn": "Landmark",
-      "color": "#376B84",
-      "icon": "MapPin"
+      "color": "#12807A",
+      "icon": "Star"
     },
     {
       "id": "cafe",
