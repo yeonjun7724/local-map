@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+test.use({ storageState: { cookies: [], origins: [{ origin: 'http://127.0.0.1:3000', localStorage: [{ name: 'local-map-locale', value: 'ko' }] }] } });
 
 test('390px layout has no horizontal overflow and mobile actions stay reachable', async ({ page }) => {
   await page.goto('/');
@@ -38,5 +39,6 @@ test('390px layout has no horizontal overflow and mobile actions stay reachable'
     })),
   );
   expect(mapControls.every(control => control.zIndex > 21 && control.height >= 44)).toBeTruthy();
+  await expect(page.locator('.language-switch button').nth(1)).toHaveAttribute('aria-pressed', 'false');
 
 });

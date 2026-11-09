@@ -8,10 +8,12 @@ import { coordinateLabel, groupMapPlaces } from '@/lib/data/presentation';
 import { siteConfig } from '@/config/site';
 import { createElement as createLucideElement } from 'lucide';
 import { categoryIcons } from '@/lib/icons';
+import type { Locale } from '@/lib/i18n';
 import type { RouteBounds } from '@/lib/data/route';
 
 type Props = {
   places: MapPlace[];
+  locale: Locale;
   routeLine: FeatureCollection<LineString>;
   routeBounds: RouteBounds | null;
   cameraRequest: number;
@@ -21,7 +23,7 @@ type Props = {
 };
 
 // Receives validated places and selection; owns only the map's rendering lifecycle.
-export default function MapView({ places, routeLine, routeBounds, cameraRequest, selectedPlaceId, onSelectPlace, center }: Props) {
+export default function MapView({ places, locale, routeLine, routeBounds, cameraRequest, selectedPlaceId, onSelectPlace, center }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<LibreMap | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -131,7 +133,7 @@ export default function MapView({ places, routeLine, routeBounds, cameraRequest,
             order.setAttribute('aria-hidden', 'true');
             button.append(order);
             const description = button.getAttribute('aria-description');
-            button.setAttribute('aria-description', [description, `방문 순서 ${place.visitNumbers.join('·')}`].filter(Boolean).join(' '));
+            button.setAttribute('aria-description', [description, `${locale === 'ko' ? '방문 순서' : 'Visit order'} ${place.visitNumbers.join('·')}`].filter(Boolean).join(' '));
           }
           button.onclick = () => onSelectPlace(place.id);
           // Pixel spacing only: every marker keeps the original geographic coordinate.
@@ -152,7 +154,7 @@ export default function MapView({ places, routeLine, routeBounds, cameraRequest,
             content.append(title, category, note);
             if (shared) {
               const warning = document.createElement('p');
-              warning.textContent = `같은 좌표 ${group.length}곳 · 핀 간격은 화면상 구분용입니다. 개별 위치를 확인해주세요.`;
+              warning.textContent = locale === 'ko' ? `같은 좌표 ${group.length}곳 · 핀 간격은 화면상 구분용입니다. 개별 위치를 확인해주세요.` : `${group.length} places share these coordinates. Pin spacing is visual only; verify individual locations.`;
               content.append(warning);
             }
             marker.setPopup(new libre.Popup({ closeButton: false, closeOnClick: false, offset: 28 })
@@ -164,7 +166,7 @@ export default function MapView({ places, routeLine, routeBounds, cameraRequest,
       }
     });
     return () => { cancelled = true; markers.forEach(marker => marker.remove()); };
-  }, [map, places, selectedPlaceId, onSelectPlace]);
+  }, [map, places, selectedPlaceId, onSelectPlace, locale]);
 
   useEffect(() => {
     if (!map) return;

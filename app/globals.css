@@ -134,3 +134,20 @@
   .recommend-options{gap:4px}
   .recommend-options button{padding-inline:9px;font-size:10px}
 }
+.header-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.language-switch{display:flex;gap:2px;padding:3px;border:1px solid #dce5da;border-radius:999px;background:#fff}
+.language-switch button{min-width:44px;min-height:44px;padding:8px 10px;border:0;border-radius:999px;background:transparent;color:var(--ink);font-size:11px}
+.language-switch button[aria-pressed=true]{background:var(--ink);color:#fff}
+.card-korean{font-size:11px;color:var(--muted);margin:3px 0}
+@media(max-width:800px){.header-actions{gap:5px}.language-switch button{min-height:44px;padding:8px}.draft{display:none}}
+@media(max-width:420px){.brand{font-size:15px}.header-actions{gap:3px}.language-switch button{font-size:10px;padding-inline:7px;min-height:44px}}
+.language-switch button{min-height:44px}
+.language-switch button{min-height:44px}
+.header-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.language-switch{display:flex;gap:2px;padding:3px;border:1px solid #dce5da;border-radius:999px;background:white}
+.language-switch button{min-height:36px;padding:6px 10px;border:0;border-radius:999px;background:transparent;color:var(--ink);font-size:11px}
+.language-switch button[aria-pressed=true]{background:var(--ink);color:white}
+.card-korean{font-size:11px;color:var(--muted);margin:3px 0}
+@media(max-width:800px){.header-actions{gap:5px}.language-switch button{min-height:40px;padding:6px 8px}.draft{display:none}}
+@media(max-width:420px){.brand{font-size:15px}.header-actions{gap:3px}.language-switch button{font-size:10px;padding-inline:7px}}
+.language-switch button{min-height:44px!important}
