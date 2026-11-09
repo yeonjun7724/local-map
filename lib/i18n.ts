@@ -2,6 +2,7 @@ export type Locale = 'ko' | 'en';
 
 export const messages = {
   ko: {
+    recommend: { notice: '추천 코스는 등록된 장소와 선택한 조건을 바탕으로 구성됩니다. 실제 보행 동선과 운영 정보는 방문 전에 확인해 주세요.' },
     route: {
       straightNotice: '점선은 방문 순서를 직선으로 연결한 참고용 표시입니다. 실제 도보 경로가 아니며 거리·소요시간을 뜻하지 않습니다.',
       networkNotice: 'OpenStreetMap 보행망으로 계산한 경로입니다. 정류장을 가까운 보행망 노드에 연결했으며, 시설 출입구·현장 통행 가능 여부는 미검증입니다.',
@@ -29,6 +30,7 @@ export const messages = {
     },
   },
   en: {
+    recommend: { notice: 'Routes use the listed places and your selected conditions. Check walking access and opening information before your visit.' },
     route: {
       straightNotice: 'Dashed lines connect stops in visit order for reference. They are not walking directions and do not represent travel distance or time.',
       networkNotice: 'Calculated on the OpenStreetMap walking network. Stops are snapped to nearby network nodes; facility entrances and on-site access have not been verified.',

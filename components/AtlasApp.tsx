@@ -8,10 +8,12 @@ import { siteConfig } from '@/config/site';
 import PlaceCard from './PlaceCard';
 import { filterPlaces } from '@/lib/data/filter';
 import PlaceDetails from './PlaceDetails';
-import { getRouteBounds } from '@/lib/data/route';
+import { buildStraightRoute, getRouteBounds } from '@/lib/data/route';
 import { buildNetworkRoute } from '@/lib/data/paths';
 import RoutePanel from './RoutePanel';
 import type { Locale } from '@/lib/i18n';
+import RecommendPanel from './routes/RecommendPanel';
+import { MyRouteProvider, useMyRoute } from './routes/MyRouteProvider';
 
 const MapView = dynamic(() => import('./map/MapView'), {
   ssr: false,
@@ -26,6 +28,11 @@ const getHash = () => window.location.hash.slice(1);
 const getServerHash = () => '';
 
 export default function AtlasApp({ data }: { data: AtlasData }) {
+  return <MyRouteProvider><AtlasContent data={data} /></MyRouteProvider>;
+}
+
+function AtlasContent({ data }: { data: AtlasData }) {
+  const myRoute = useMyRoute();
   const hash = useSyncExternalStore(subscribeHash, getHash, getServerHash);
   const route = siteConfig.features.themes ? data.routes.find(item => item.routeId === hash) : undefined;
   const viewId = route ? hash : 'all';
@@ -46,10 +53,12 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
   const unlocated = useMemo(() => filtered.filter(place => place.latitude === null || place.longitude === null), [filtered]);
   const networkPath = route ? data.routePaths?.routes[route.routeId] : undefined;
   const networkRoute = useMemo(() => buildNetworkRoute(networkPath, places), [networkPath, places]);
+  const recommendationRoute = useMemo(() => buildStraightRoute(myRoute.placeIds, data.places), [myRoute.placeIds, data.places]);
   const routeBounds = useMemo(() => route ? getRouteBounds([
     ...candidates,
     ...(networkPath?.segments.flatMap(segment => segment.geometry.map(([longitude, latitude]) => ({ longitude, latitude }))) ?? []),
-  ]) : null, [route, candidates, networkPath]);
+  ]) : myRoute.placeIds.length ? getRouteBounds(data.places.filter(place => myRoute.placeIds.includes(place.id))) : null,
+  [route, candidates, networkPath, myRoute.placeIds, data.places]);
   const selected = filtered.find(place => selection?.routeId === viewId && place.id === selection.placeId) ?? null;
   const center = siteConfig.region.center;
   const selectPlace = useCallback((placeId: string) => {
@@ -114,6 +123,7 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
             {item.titleKo}
           </button>)}
         </div>}
+        {!route && <RecommendPanel places={data.places} themes={data.themes} locale={routeLocale} />}
         {route ? <RoutePanel route={route} places={data.places} locale={routeLocale} onLocaleChange={setRouteLocale}
           onSelectPlace={selectStop} onClear={resetFilters} path={networkPath} pathsMeta={data.routePaths} filtered={networkRoute.filtered} /> : <section className="course">
           <h2>공원과 주변의 모든 장소</h2>
@@ -158,7 +168,7 @@ export default function AtlasApp({ data }: { data: AtlasData }) {
         <p className="note">ⓘ {route ? '위 순서는 기획 방문 순서이며, 실제 보행 동선은 미검증입니다.' : '장소 목록은 방문 순서가 아닙니다.'} 실제 위치·운영 여부는 방문 전 확인해주세요.</p>
       </aside>
       <section className="map" aria-label={`${siteConfig.region.nameKo} 실제 지도`}>
-        <MapView places={places} routeLine={networkRoute.geojson} routeBounds={routeBounds} cameraRequest={cameraRequest} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
+        <MapView places={myRoute.placeIds.length ? data.places.filter(place => myRoute.placeIds.includes(place.id)).map(place => ({ ...place, icon: 'Trees', color: '#26765b', categoryNameKo: '' })) : places} routeLine={myRoute.placeIds.length ? recommendationRoute.geojson : networkRoute.geojson} routeBounds={routeBounds} cameraRequest={cameraRequest} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
         <div className="maptitle"><strong>{siteConfig.region.nameKo} · 산책 지도</strong><small>{siteConfig.region.nameEn} · 장소별 좌표 확인 필요</small></div>
         {selected && <PlaceDetails key={selected.id} place={selected} onClose={() => setSelection(null)}
           onShare={siteConfig.features.sharing ? share : undefined} />}

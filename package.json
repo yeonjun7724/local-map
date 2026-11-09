@@ -8,9 +8,10 @@
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint .",
-    "test": "tsx --test lib/data/*.test.ts tests/unit/*.test.ts tests/unit/*.test.tsx"
+    "test": "tsx --test lib/data/*.test.ts lib/recommend/*.test.ts tests/unit/*.test.ts tests/unit/*.test.tsx"
   },
   "dependencies": {
+    "openai": "^7.53.0",
     "lucide": "^1.67.0",
     "maplibre-gl": "^6.16.0",
     "next": "16.4.5",
