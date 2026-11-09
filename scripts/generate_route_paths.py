@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import json
 import math
 from pathlib import Path
+import subprocess
 
 import networkx as nx
 import osmnx as ox
@@ -151,6 +152,7 @@ def main():
     temporary.write_text(json.dumps(output, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     temporary.replace(destination)
     print(f"Saved {destination}", flush=True)
+    subprocess.run(["node", "scripts/generate_route_connections.mjs", str(args.graph)], cwd=ROOT, check=True)
 
 
 if __name__ == "__main__":

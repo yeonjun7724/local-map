@@ -8,7 +8,7 @@ import { siteConfig } from '@/config/site';
 import PlaceCard from './PlaceCard';
 import { filterPlaces } from '@/lib/data/filter';
 import PlaceDetails from './PlaceDetails';
-import { buildStraightRoute, getRouteBounds } from '@/lib/data/route';
+import { getRouteBounds } from '@/lib/data/route';
 import { buildNetworkRoute } from '@/lib/data/paths';
 import RoutePanel from './RoutePanel';
 import type { Locale } from '@/lib/i18n';
@@ -53,7 +53,6 @@ function AtlasContent({ data }: { data: AtlasData }) {
   const unlocated = useMemo(() => filtered.filter(place => place.latitude === null || place.longitude === null), [filtered]);
   const networkPath = route ? data.routePaths?.routes[route.routeId] : undefined;
   const networkRoute = useMemo(() => buildNetworkRoute(networkPath, places), [networkPath, places]);
-  const recommendationRoute = useMemo(() => buildStraightRoute(myRoute.placeIds, data.places), [myRoute.placeIds, data.places]);
   const routeBounds = useMemo(() => route ? getRouteBounds([
     ...candidates,
     ...(networkPath?.segments.flatMap(segment => segment.geometry.map(([longitude, latitude]) => ({ longitude, latitude }))) ?? []),
@@ -168,7 +167,7 @@ function AtlasContent({ data }: { data: AtlasData }) {
         <p className="note">ⓘ {route ? '위 순서는 기획 방문 순서이며, 실제 보행 동선은 미검증입니다.' : '장소 목록은 방문 순서가 아닙니다.'} 실제 위치·운영 여부는 방문 전 확인해주세요.</p>
       </aside>
       <section className="map" aria-label={`${siteConfig.region.nameKo} 실제 지도`}>
-        <MapView places={myRoute.placeIds.length ? data.places.filter(place => myRoute.placeIds.includes(place.id)).map(place => ({ ...place, icon: 'Trees', color: '#26765b', categoryNameKo: '' })) : places} routeLine={myRoute.placeIds.length ? recommendationRoute.geojson : networkRoute.geojson} routeBounds={routeBounds} cameraRequest={cameraRequest} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
+        <MapView places={myRoute.placeIds.length ? data.places.filter(place => myRoute.placeIds.includes(place.id)).map(place => ({ ...place, icon: 'Trees', color: '#26765b', categoryNameKo: '' })) : places} routeLine={myRoute.placeIds.length ? myRoute.routePath?.geojson ?? { type: 'FeatureCollection', features: [] } : networkRoute.geojson} routeBounds={routeBounds} cameraRequest={cameraRequest} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
         <div className="maptitle"><strong>{siteConfig.region.nameKo} · 산책 지도</strong><small>{siteConfig.region.nameEn} · 장소별 좌표 확인 필요</small></div>
         {selected && <PlaceDetails key={selected.id} place={selected} onClose={() => setSelection(null)}
           onShare={siteConfig.features.sharing ? share : undefined} />}

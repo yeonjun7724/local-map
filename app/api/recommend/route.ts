@@ -21,7 +21,9 @@ export async function POST(request: Request) {
   const input = parsed.data;
   const data = await loadAtlasData();
   if (input.theme && !data.themes.some(theme => theme.id === input.theme)) return Response.json({ error: 'Unknown theme' }, { status: 400 });
-  if (input.startId && !data.places.some(place => place.id === input.startId)) return Response.json({ error: 'Unknown start place' }, { status: 400 });
+  if (input.startId && !data.places.some(place => place.id === input.startId && place.longitude !== null && place.latitude !== null)) {
+    return Response.json({ error: 'Unknown or unlocated start place' }, { status: 400 });
+  }
 
   const now = Date.now();
   const key = JSON.stringify(input);
@@ -29,9 +31,10 @@ export async function POST(request: Request) {
   const cached = cache.get(key);
   if (cached) return Response.json(cached.value);
 
+  const locatedPlaces = data.places.filter(place => place.longitude !== null && place.latitude !== null);
   const orderedCandidates = input.theme
-    ? [...data.places.filter(place => place.theme === input.theme), ...data.places.filter(place => place.theme !== input.theme)]
-    : data.places;
+    ? [...locatedPlaces.filter(place => place.theme === input.theme), ...locatedPlaces.filter(place => place.theme !== input.theme)]
+    : locatedPlaces;
   const candidates = orderedCandidates.slice(0, 30);
   const address = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
   const recent = (rateLimits.get(address) ?? []).filter(time => now - time < RATE_WINDOW_MS);

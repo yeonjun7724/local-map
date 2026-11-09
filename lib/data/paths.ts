@@ -16,6 +16,12 @@ const pathSchema = z.object({
   totalDistanceM: metric, totalDurationS: metric,
   segments: z.array(segmentSchema), geometry: z.array(coordinate),
 }).strict();
+const connectionsSchema = z.object({
+  generatedAt: z.iso.datetime({ offset: true }), source: z.string().min(1), license: z.literal('ODbL 1.0'),
+  walkingSpeedKmh: z.number().finite().positive(), networkType: z.literal('walk'), graphRetrievedAt: z.iso.datetime({ offset: true }),
+  maxSnapDistanceM: z.number().finite().positive(), osmnxVersion: z.string().min(1),
+  connections: z.record(z.string(), segmentSchema),
+}).strict();
 const schema = z.object({
   generatedAt: z.union([z.iso.date(), z.iso.datetime({ offset: true })]),
   source: z.string().min(1), license: z.literal('ODbL 1.0'), walkingSpeedKmh: z.number().finite().positive(),
@@ -25,6 +31,30 @@ const schema = z.object({
 }).strict();
 export type RoutePaths = z.infer<typeof schema>;
 export type RoutePath = z.infer<typeof pathSchema>;
+export type RouteConnections = z.infer<typeof connectionsSchema>;
+
+export function parseRouteConnections(text: string, places: Place[]): RouteConnections {
+  const data = connectionsSchema.parse(JSON.parse(text.replace(/^\uFEFF/, '')));
+  const byId = new Map(places.map(place => [place.id, place]));
+  for (const [key, connection] of Object.entries(data.connections)) {
+    const from = byId.get(connection.fromId);
+    const to = byId.get(connection.toId);
+    if (key !== `${connection.fromId}::${connection.toId}` || !from || !to
+      || from.longitude === null || from.latitude === null || to.longitude === null || to.latitude === null
+      || connection.fromId === connection.toId) throw new Error(`route-connections.json: invalid OSM connection '${key}'`);
+    if (connection.status === 'ready') {
+      if (connection.geometry.length < 2 || connection.distanceM === null || connection.durationS === null || connection.reason !== null
+        || connection.fromSnapDistanceM === null || connection.toSnapDistanceM === null
+        || Math.max(connection.fromSnapDistanceM, connection.toSnapDistanceM) > data.maxSnapDistanceM
+        || Math.abs(connection.durationS - connection.distanceM / (data.walkingSpeedKmh / 3.6)) > 1) {
+        throw new Error(`route-connections.json: invalid OSM connection geometry '${key}'`);
+      }
+    } else if (connection.geometry.length || connection.distanceM !== null || connection.durationS !== null || !connection.reason) {
+      throw new Error(`route-connections.json: invalid unavailable OSM connection '${key}'`);
+    }
+  }
+  return data;
+}
 
 export function parseRoutePaths(text: string, routes: Route[], places: Place[]): RoutePaths {
   const data = schema.parse(JSON.parse(text.replace(/^\uFEFF/, '')));
@@ -83,4 +113,22 @@ export function buildNetworkRoute(path: RoutePath | undefined, visiblePlaces: re
       geometry: { type: 'LineString', coordinates: segment.geometry } });
   });
   return { geojson, filtered };
+}
+
+export function buildRecommendedNetworkRoute(placeIds: readonly string[], paths: RouteConnections | undefined) {
+  const geojson: FeatureCollection<LineString> = { type: 'FeatureCollection', features: [] };
+  const segments = placeIds.slice(1).map((toId, index) => paths?.connections[`${placeIds[index]}::${toId}`]);
+  segments.forEach((segment, index) => {
+    if (!segment || segment.status !== 'ready') return;
+    geojson.features.push({ type: 'Feature', properties: { fromId: segment.fromId, toId: segment.toId, fromStep: index + 1, toStep: index + 2 },
+      geometry: { type: 'LineString', coordinates: segment.geometry } });
+  });
+  const ready = segments.filter(segment => segment?.status === 'ready');
+  const complete = segments.length > 0 && ready.length === segments.length;
+  return {
+    geojson,
+    missingLegs: segments.length - ready.length,
+    totalDistanceM: complete ? ready.reduce((total, segment) => total + segment!.distanceM!, 0) : null,
+    totalDurationS: complete ? ready.reduce((total, segment) => total + segment!.durationS!, 0) : null,
+  };
 }

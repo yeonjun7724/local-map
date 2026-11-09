@@ -16,7 +16,7 @@ const text = {
 
 export default function RecommendPanel({ places, themes, locale }: Props) {
   const t = text[locale];
-  const { replace } = useMyRoute();
+  const { replace, routePath, routeLoading } = useMyRoute();
   const [open, setOpen] = useState(false);
   const [minutes, setMinutes] = useState<60 | 120 | 240>(120);
   const [theme, setTheme] = useState('');
@@ -26,6 +26,7 @@ export default function RecommendPanel({ places, themes, locale }: Props) {
   const [error, setError] = useState('');
   const [result, setResult] = useState<Result | null>(null);
   const byId = new Map(places.map(place => [place.id, place]));
+  const activePath = result && routePath ? routePath : null;
 
   async function recommend() {
     setLoading(true); setError(''); setResult(null);
@@ -62,9 +63,12 @@ export default function RecommendPanel({ places, themes, locale }: Props) {
     </div>}
     {result && <div className="recommend-result">
       <span className={`recommend-badge ${result.source}`}>{result.source === 'ai' ? t.ai : t.rule}</span>
-      <ol>{result.placeIds.map((id, index) => <li key={id}>{index + 1}. {locale === 'ko' ? byId.get(id)?.nameKo : byId.get(id)?.nameEn || byId.get(id)?.nameKo}</li>)}</ol>
+      <ol>{result.placeIds.map(id => <li key={id}>{locale === 'ko' ? byId.get(id)?.nameKo : byId.get(id)?.nameEn || byId.get(id)?.nameKo}</li>)}</ol>
       <p>{result.reason}</p>
-      <button type="button" className="recommend-open" onClick={() => replace(result.placeIds)}>{t.show}</button>
+      {activePath && <p role="status">{activePath.missingLegs === 0
+        ? `${getMessages(locale).route.networkReady} · ≈${Math.round(activePath.totalDistanceM!)} m · ${getMessages(locale).route.totalDuration}: ≈${Math.round(activePath.totalDurationS! / 60)} ${getMessages(locale).route.minutes}`
+        : locale === 'ko' ? `OSM 보행 경로를 확인할 수 없는 구간 ${activePath.missingLegs}개는 지도에 직선으로 표시하지 않습니다.` : `${activePath.missingLegs} walking segments are unavailable and are omitted from the map.`}</p>}
+      <button type="button" className="recommend-open" onClick={() => replace(result.placeIds)} disabled={routeLoading}>{routeLoading ? t.loading : t.show}</button>
     </div>}
   </section>;
 }

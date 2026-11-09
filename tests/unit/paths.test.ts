@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { parseAtlasData } from '../../lib/data/parse';
-import { buildNetworkRoute, parseRoutePaths } from '../../lib/data/paths';
+import { buildNetworkRoute, buildRecommendedNetworkRoute, parseRouteConnections, parseRoutePaths } from '../../lib/data/paths';
 
 const read = (name: string) => readFileSync(new URL(`../../data/${name}`, import.meta.url), 'utf8');
 const data = parseAtlasData(read('places.csv'), read('routes.json'), read('categories.json'));
 const text = read('route-paths.json');
+const connectionText = read('route-connections.json');
 const parse = (value: unknown) => parseRoutePaths(JSON.stringify(value), data.routes, data.places);
 
 test('generated paths validate against the exact route order and source coordinates', () => {
@@ -38,6 +39,27 @@ test('rendered lines use stored OSM geometry and filters never bridge hidden sto
   assert.equal(filtered.filtered, true);
   assert.equal(filtered.geojson.features.length, 1);
   assert.equal(filtered.geojson.features[0].properties?.fromId, path.placeIds[2]);
+});
+
+test('recommended itineraries connect with the stored OSMnx walking network, never straight lines', () => {
+  const paths = parseRouteConnections(connectionText, data.places);
+  const ids = ['ilsan-lake-park', 'lake-waterfall', 'aesugyo'];
+  const route = buildRecommendedNetworkRoute(ids, paths);
+  assert.equal(route.missingLegs, 0);
+  assert.equal(route.geojson.features.length, 2);
+  assert.deepEqual(route.geojson.features[0].geometry.coordinates, paths.connections['ilsan-lake-park::lake-waterfall'].geometry);
+  assert.ok(route.geojson.features.every(feature => feature.geometry.coordinates.length > 2));
+  assert.ok(route.totalDistanceM! > 0);
+  assert.ok(route.totalDurationS! > 0);
+});
+
+test('missing OSMnx connections are omitted rather than drawn as misleading straight segments', () => {
+  const paths = parseRouteConnections(connectionText, data.places);
+  const ids = ['traditional-garden', 'metasequoia-path'];
+  const route = buildRecommendedNetworkRoute(ids, paths);
+  assert.equal(route.missingLegs, 1);
+  assert.equal(route.geojson.features.length, 0);
+  assert.equal(route.totalDistanceM, null);
 });
 test('changed route order or CSV coordinates are rejected as stale data', () => {
   const value = JSON.parse(text);
