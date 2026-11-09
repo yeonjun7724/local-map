@@ -7,5 +7,7 @@ coverage/
 !.env.example
 npm-debug.log*
 .cache/
+test-results/
+playwright-report/
 .venv/
 __pycache__/

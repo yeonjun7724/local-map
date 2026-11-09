@@ -96,3 +96,41 @@
 @media(max-width:800px){.detail{bottom:48px}.legend{display:none}.map-status{left:18px;top:100px}.map{height:700px}}
 .recommend-trigger{position:absolute;top:165px;right:24px;z-index:3;border:0;border-radius:10px;background:var(--ink);color:white;padding:12px 16px;box-shadow:0 4px 16px #203d3426;font-size:13px;font-weight:700}.recommend-backdrop{position:absolute;inset:0;z-index:4;border:0;background:#203d3418;padding:0}.recommend-overlay{position:absolute;top:150px;right:24px;z-index:5;width:min(410px,calc(100% - 48px));max-height:calc(100% - 175px);overflow:auto;border-radius:18px;box-shadow:0 12px 40px #203d3433}.recommend-overlay>.recommend-panel{margin:0}.recommend-close{position:absolute;top:12px;right:12px;z-index:2;width:34px;height:34px;border:1px solid #dce5da;border-radius:50%;background:#fff;color:var(--ink);font-size:23px;line-height:1}.recommend-overlay .recommend-panel h2{padding-right:38px}
 @media(max-width:800px){.recommend-trigger{top:165px;right:16px}.recommend-backdrop{position:fixed;inset:0;z-index:20;background:#14251fa0}.recommend-overlay{position:fixed;inset:auto 0 0;width:100%;max-height:85dvh;padding:18px 14px calc(16px + env(safe-area-inset-bottom));overflow:auto;border-radius:22px 22px 0 0;z-index:21;background:white;box-shadow:0 -12px 40px #10251f40}.recommend-overlay>.recommend-panel{padding:17px 12px}.recommend-close{top:24px;right:24px}}
+
+/* Keep mobile controls reachable and the 390px layout inside the viewport. */
+.map-overview{z-index:6;min-height:44px;padding:10px 12px}
+.tabs button,.category-chips button{min-height:44px}
+.route-languages button,.clear-route{min-height:44px;padding-block:8px}
+.route-itinerary button,.reset-filters{min-height:44px;padding-block:8px}
+.search-field button{min-width:44px;min-height:44px}
+.detail .detail-close{width:44px;height:44px}
+.shared-place-choices button{min-height:44px;padding-block:9px}
+.search-field input{min-height:44px}
+.unlocated-places summary{min-height:44px;padding-block:12px}
+@media(max-width:800px){
+  header{gap:8px;padding-inline:12px;min-width:0}
+  .brand{min-width:0;white-space:nowrap;font-size:clamp(15px,4.8vw,18px);letter-spacing:-.5px}
+  .draft{flex-shrink:0;font-size:9px;padding:7px 8px}
+  main{grid-template-columns:minmax(0,1fr);min-width:0}
+  aside,.map{min-width:0}
+  .pin{width:44px;height:44px}
+  .map-overview{z-index:22;min-height:48px;padding:12px}
+  .recommend-trigger{min-height:48px;z-index:22}
+  .recommend-backdrop{z-index:20}
+  .recommend-overlay{z-index:21}
+  .recommend-close,.detail .detail-close{width:48px;height:48px}
+  .route-languages button,.clear-route,.route-itinerary button,
+  .reset-filters,.search-field button,.shared-place-choices button,
+  .recommend-open,.recommend-options button{min-height:44px}
+  .recommend-options button{padding:9px 12px}
+  .recommend-starts{max-height:140px}
+  .tabs button,.category-chips button{min-height:44px}
+}
+@media(max-width:420px){
+  header{padding-inline:10px;gap:6px}
+  .brand{font-size:clamp(14px,4.5vw,17px)}
+  .draft{font-size:8px;padding:7px 6px}
+  .recommend-overlay>.recommend-panel{padding-inline:8px}
+  .recommend-options{gap:4px}
+  .recommend-options button{padding-inline:9px;font-size:10px}
+}

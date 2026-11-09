@@ -8,13 +8,14 @@
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint .",
-    "test": "tsx --test lib/data/*.test.ts lib/recommend/*.test.ts tests/unit/*.test.ts tests/unit/*.test.tsx"
+    "test": "tsx --test lib/data/*.test.ts lib/recommend/*.test.ts tests/unit/*.test.ts tests/unit/*.test.tsx",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
-    "openai": "^7.53.0",
     "lucide": "^1.67.0",
     "maplibre-gl": "^6.16.0",
     "next": "16.4.5",
+    "openai": "^7.53.0",
     "papaparse": "^5.7.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
@@ -22,6 +23,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@types/node": "^24.0.0",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19.0.0",
