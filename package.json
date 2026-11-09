@@ -16,6 +16,7 @@
     "next": "16.4.5",
     "openai": "^7.53.0",
     "papaparse": "^5.7.0",
+    "qrcode.react": "^4.2.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "^0.0.1",

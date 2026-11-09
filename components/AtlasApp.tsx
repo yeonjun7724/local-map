@@ -14,6 +14,7 @@ import RoutePanel from './RoutePanel';
 import type { Locale } from '@/lib/i18n';
 import RecommendPanel from './routes/RecommendPanel';
 import { MyRouteProvider, useMyRoute } from './routes/MyRouteProvider';
+import { QRCodeSVG } from 'qrcode.react';
 
 const MapView = dynamic(() => import('./map/MapView'), {
   ssr: false,
@@ -24,7 +25,7 @@ function subscribeHash(onChange: () => void) {
   window.addEventListener('hashchange', onChange);
   return () => window.removeEventListener('hashchange', onChange);
 }
-const getHash = () => window.location.hash.slice(1);
+const getHash = () => window.location.hash.slice(1).split('?')[0];
 const getServerHash = () => '';
 
 export default function AtlasApp({ data }: { data: AtlasData }) {
@@ -41,6 +42,7 @@ function AtlasContent({ data }: { data: AtlasData }) {
   const [cameraRequest, setCameraRequest] = useState(0);
   const [toast, setToast] = useState('');
   const [recommendOpen, setRecommendOpen] = useState(false);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,6 +54,21 @@ function AtlasContent({ data }: { data: AtlasData }) {
     document.documentElement.lang = locale;
     try { localStorage.setItem('local-map-locale', locale); } catch { /* Switching remains available for this session. */ }
   }, [locale]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+    const placeId = params.get('place');
+    const sharedRoute = params.get('myRoute');
+    if (sharedRoute) {
+      const ids = sharedRoute.split(',').filter(id => data.places.some(place => place.id === id));
+      if (ids.length >= 3 && ids.length <= 7) myRoute.replace(ids);
+    }
+    if (placeId && data.places.some(place => place.id === placeId)) {
+      setSelection({ routeId: viewId, placeId, origin: 'map' });
+    }
+  // Restore a shared place or recommended route once on initial load.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const candidates = useMemo(() => visiblePlaces(data, viewId), [data, viewId]);
   const localizedCategories = useMemo(() => data.categories.map(item => ({ ...item, nameKo: locale === 'en' ? item.nameEn : item.nameKo })), [data.categories, locale]);
@@ -113,6 +130,15 @@ function AtlasContent({ data }: { data: AtlasData }) {
     }
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(''), 5000);
+  }
+
+  function openShare(kind: 'map' | 'route' | 'place') {
+    const url = new URL(window.location.href);
+    const params = new URLSearchParams();
+    if (kind === 'place' && selected) params.set('place', selected.id);
+    if (kind === 'route' && myRoute.placeIds.length) params.set('myRoute', myRoute.placeIds.join(','));
+    url.hash = `${kind === 'route' && !myRoute.placeIds.length ? viewId : 'all'}${params.size ? `?${params}` : ''}`;
+    setQrUrl(url.href);
   }
 
   return <>
@@ -189,6 +215,10 @@ function AtlasContent({ data }: { data: AtlasData }) {
       <section className="map" aria-label={locale === 'ko' ? `${siteConfig.region.nameKo} 실제 지도` : `${siteConfig.region.nameEn} map`}>
         <MapView places={(myRoute.placeIds.length ? localizedPlaces.filter(place => myRoute.placeIds.includes(place.id)) : places).map(place => myRoute.placeIds.length ? { ...place, icon: 'Trees', color: '#26765b', categoryNameKo: '' } : place)} locale={locale} routeLine={myRoute.placeIds.length ? myRoute.routePath?.geojson ?? { type: 'FeatureCollection', features: [] } : networkRoute.geojson} routeBounds={routeBounds} cameraRequest={cameraRequest} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
         <div className="maptitle"><strong>{locale === 'ko' ? `${siteConfig.region.nameKo} · 산책 지도` : `${siteConfig.region.nameEn} · Walking map`}</strong><small>{locale === 'ko' ? `${siteConfig.region.nameEn} · 장소별 좌표 확인 필요` : 'Place coordinates may need verification'}</small></div>
+        {siteConfig.features.sharing && <div className="map-share-actions" role="group" aria-label="Share QR codes">
+          <button type="button" onClick={() => openShare('map')}>{locale === 'ko' ? '전체 지도 QR' : 'Map QR'}</button>
+          <button type="button" onClick={() => openShare('route')}>{locale === 'ko' ? '현재 코스 QR' : 'Route QR'}</button>
+        </div>}
         <button type="button" className="recommend-trigger" aria-expanded={recommendOpen} aria-controls="map-recommend-panel"
           onClick={() => setRecommendOpen(true)}>{locale === 'ko' ? '나에게 맞는 코스' : 'A route for you'}</button>
         {recommendOpen && <>
@@ -199,10 +229,18 @@ function AtlasContent({ data }: { data: AtlasData }) {
           </div>
         </>}
         {selected && <PlaceDetails key={selected.id} place={selected} onClose={() => setSelection(null)}
-          onShare={siteConfig.features.sharing ? share : undefined} locale={locale} categoryName={categoryById.get(selected.category) ?? selected.categoryNameKo} />}
+          onShare={siteConfig.features.sharing ? () => openShare('place') : undefined} locale={locale} categoryName={categoryById.get(selected.category) ?? selected.categoryNameKo} />}
         <div className="legend">● 지도·카드 {places.length}곳<br />● 핀 색은 장소 카테고리<br />● 동일 좌표의 핀 간격은 화면상 구분용<br />● 강조 테두리는 선택 · 점선 테두리는 근사 좌표<br />{route ? '━ 번호는 방문 순서 · 실선은 OSM 보행망 계산 경로' : '코스를 선택하면 OSM 보행망 경로를 표시합니다'}</div>
       </section>
     </main>
     <div className="toast" role="status">{toast}</div>
+    {qrUrl && <div className="qr-backdrop" role="presentation" onClick={() => setQrUrl(null)}>
+      <section className="qr-dialog" role="dialog" aria-modal="true" aria-labelledby="qr-title" onClick={event => event.stopPropagation()}>
+        <button type="button" className="qr-close" onClick={() => setQrUrl(null)} aria-label={locale === 'ko' ? 'QR 코드 닫기' : 'Close QR code'}>×</button>
+        <h2 id="qr-title">{locale === 'ko' ? 'QR 코드로 열기' : 'Open with QR code'}</h2>
+        <QRCodeSVG className="share-qr" value={qrUrl} size={280} level="M" includeMargin aria-label={locale === 'ko' ? '공유 링크 QR 코드' : 'QR code for this link'} />
+        <a href={qrUrl}>{locale === 'ko' ? '공유 링크 열기' : 'Open shared link'}</a>
+      </section>
+    </div>}
   </>;
 }
