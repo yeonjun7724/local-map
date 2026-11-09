@@ -1,6 +1,7 @@
 import 'server-only';
 import OpenAI from 'openai';
 import type { Place, Theme } from '../data/types';
+import { recommendationPrompt } from './prompt';
 import { parseRecommendationResponse, type RecommendationInput } from './schema';
 
 export async function askModel(places: readonly Place[], themes: readonly Theme[], input: RecommendationInput) {
@@ -21,7 +22,7 @@ export async function askModel(places: readonly Place[], themes: readonly Theme[
     const response = await client.responses.create({
       model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
       input: [
-        { role: 'system', content: '후보 장소 중 조건에 맞는 3~7곳을 방문 순서로 고르고, 짧은 한국어 추천 이유를 작성하세요. 입력된 후보 ID만 사용하세요.' },
+        { role: 'system', content: recommendationPrompt },
         { role: 'user', content: JSON.stringify({ conditions: { minutes: input.minutes, theme: themeName, companion: companionLabels[input.companion], startId: input.startId }, candidates }) },
       ],
       text: { format: { type: 'json_schema', name: 'walking_route_recommendation', strict: true,

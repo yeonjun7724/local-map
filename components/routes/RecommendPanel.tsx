@@ -17,7 +17,6 @@ const text = {
 export default function RecommendPanel({ places, themes, locale }: Props) {
   const t = text[locale];
   const { replace, routePath, routeLoading } = useMyRoute();
-  const [open, setOpen] = useState(false);
   const [minutes, setMinutes] = useState<60 | 120 | 240>(120);
   const [theme, setTheme] = useState('');
   const [companion, setCompanion] = useState<'solo' | 'couple' | 'friends' | 'kids'>('kids');
@@ -42,8 +41,7 @@ export default function RecommendPanel({ places, themes, locale }: Props) {
   return <section className="course recommend-panel" aria-labelledby="recommend-title">
     <h2 id="recommend-title">{t.title}</h2>
     <p>{getMessages(locale).recommend.notice}</p>
-    {!open && <button type="button" className="recommend-open" onClick={() => setOpen(true)}>{t.button}</button>}
-    {open && <div className="recommend-form">
+    <div className="recommend-form">
       <fieldset><legend>{t.minutes}</legend><div className="recommend-options">
         {([60, 120, 240] as const).map(value => <button type="button" key={value} aria-pressed={minutes === value} onClick={() => setMinutes(value)}>{value} {locale === 'ko' ? '분' : 'min'}</button>)}
       </div></fieldset>
@@ -60,7 +58,7 @@ export default function RecommendPanel({ places, themes, locale }: Props) {
       </div></fieldset>
       <button type="button" className="recommend-open" onClick={recommend} disabled={loading}>{loading ? t.loading : t.button}</button>
       {error && <p role="alert">{error}</p>}
-    </div>}
+    </div>
     {result && <div className="recommend-result">
       <span className={`recommend-badge ${result.source}`}>{result.source === 'ai' ? t.ai : t.rule}</span>
       <ol>{result.placeIds.map(id => <li key={id}>{locale === 'ko' ? byId.get(id)?.nameKo : byId.get(id)?.nameEn || byId.get(id)?.nameKo}</li>)}</ol>

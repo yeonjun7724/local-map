@@ -40,6 +40,7 @@ function AtlasContent({ data }: { data: AtlasData }) {
   const [routeLocale, setRouteLocale] = useState<Locale>('ko');
   const [cameraRequest, setCameraRequest] = useState(0);
   const [toast, setToast] = useState('');
+  const [recommendOpen, setRecommendOpen] = useState(false);
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -122,7 +123,6 @@ function AtlasContent({ data }: { data: AtlasData }) {
             {item.titleKo}
           </button>)}
         </div>}
-        {!route && <RecommendPanel places={data.places} themes={data.themes} locale={routeLocale} />}
         {route ? <RoutePanel route={route} places={data.places} locale={routeLocale} onLocaleChange={setRouteLocale}
           onSelectPlace={selectStop} onClear={resetFilters} path={networkPath} pathsMeta={data.routePaths} filtered={networkRoute.filtered} /> : <section className="course">
           <h2>공원과 주변의 모든 장소</h2>
@@ -169,6 +169,15 @@ function AtlasContent({ data }: { data: AtlasData }) {
       <section className="map" aria-label={`${siteConfig.region.nameKo} 실제 지도`}>
         <MapView places={myRoute.placeIds.length ? data.places.filter(place => myRoute.placeIds.includes(place.id)).map(place => ({ ...place, icon: 'Trees', color: '#26765b', categoryNameKo: '' })) : places} routeLine={myRoute.placeIds.length ? myRoute.routePath?.geojson ?? { type: 'FeatureCollection', features: [] } : networkRoute.geojson} routeBounds={routeBounds} cameraRequest={cameraRequest} selectedPlaceId={selected?.id ?? null} onSelectPlace={selectFromMap} center={center} />
         <div className="maptitle"><strong>{siteConfig.region.nameKo} · 산책 지도</strong><small>{siteConfig.region.nameEn} · 장소별 좌표 확인 필요</small></div>
+        <button type="button" className="recommend-trigger" aria-expanded={recommendOpen} aria-controls="map-recommend-panel"
+          onClick={() => setRecommendOpen(true)}>{routeLocale === 'ko' ? '나에게 맞는 코스' : 'A route for you'}</button>
+        {recommendOpen && <>
+          <button type="button" className="recommend-backdrop" aria-label="추천 패널 닫기" onClick={() => setRecommendOpen(false)} />
+          <div id="map-recommend-panel" className="recommend-overlay" role="dialog" aria-modal="true" aria-label="나에게 맞는 코스">
+            <button type="button" className="recommend-close" aria-label="추천 패널 닫기" onClick={() => setRecommendOpen(false)}>×</button>
+            <RecommendPanel places={data.places} themes={data.themes} locale={routeLocale} />
+          </div>
+        </>}
         {selected && <PlaceDetails key={selected.id} place={selected} onClose={() => setSelection(null)}
           onShare={siteConfig.features.sharing ? share : undefined} />}
         <div className="legend">● 지도·카드 {places.length}곳<br />● 핀 색은 장소 카테고리<br />● 동일 좌표의 핀 간격은 화면상 구분용<br />● 강조 테두리는 선택 · 점선 테두리는 근사 좌표<br />{route ? '━ 번호는 방문 순서 · 실선은 OSM 보행망 계산 경로' : '코스를 선택하면 OSM 보행망 경로를 표시합니다'}</div>
