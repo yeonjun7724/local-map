@@ -43,6 +43,6 @@ export default function PlaceDetails({ place, onClose, onShare, locale = 'ko', c
       {directions && <a href={directions} target="_blank" rel="noopener noreferrer">{locale === 'ko' ? '도보 길찾기 →' : 'Walking directions →'}</a>}
       {place.externalUrl && <a href={place.externalUrl} target="_blank" rel="noopener noreferrer">{locale === 'ko' ? '관련 정보 →' : 'More information →'}</a>}
     </div>
-    {onShare && <button type="button" onClick={onShare}>{locale === 'ko' ? '링크 복사해서 공유 →' : 'Copy and share link →'}</button>}
+    {onShare && <button type="button" onClick={onShare}>{locale === 'ko' ? '장소 QR로 공유 →' : 'Share place QR →'}</button>}
   </section>;
 }

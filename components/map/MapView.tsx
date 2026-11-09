@@ -212,10 +212,10 @@ export default function MapView({ places, locale, routeLine, routeBounds, camera
   }
 
   return <>
-    <div ref={container} id="map" aria-label="확대·축소하고 이동할 수 있는 지도" />
-    {map && !status && <button className="map-overview" onClick={showAllPins}>전체 핀 보기</button>}
-    {status && <div className="map-status" role="status">{status}
-      {status !== '지도를 불러오는 중입니다.' && <button onClick={retry}>다시 시도</button>}
+    <div ref={container} id="map" aria-label={locale === 'ko' ? '확대·축소하고 이동할 수 있는 지도' : 'Pan and zoom map'} />
+    {map && !status && <button className="map-overview" onClick={showAllPins}>{locale === 'ko' ? '전체 핀 보기' : 'Show all pins'}</button>}
+    {status && <div className="map-status" role="status">{locale === 'ko' ? status : status === '지도를 불러오는 중입니다.' ? 'Loading map…' : 'Could not load the map'}
+      {status !== '지도를 불러오는 중입니다.' && <button onClick={retry}>{locale === 'ko' ? '다시 시도' : 'Retry'}</button>}
     </div>}
   </>;
 }

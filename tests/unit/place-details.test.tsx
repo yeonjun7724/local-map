@@ -20,7 +20,7 @@ test('missing fields are hidden and absent images use category color', () => {
 test('supplied details are escaped and directions use original coordinates', () => {
   const place = { ...base, openingHours: '09:00–18:00', tags: '<script>alert(1)</script>', address: '실제 입력 주소' };
   const html = renderToStaticMarkup(<PlaceDetails place={place} onClose={close} />);
-  assert.ok(html.includes('<dt>영업시간</dt>'));
+  assert.ok(html.includes('<dt>운영 정보</dt>'));
   assert.ok(html.includes('09:00–18:00'));
   assert.ok(html.includes('&lt;script&gt;'));
   assert.ok(!html.includes('<script>'));
