@@ -6,11 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "railway:login": "railway login",
-    "railway:link": "railway link",
-    "railway:up": "railway up",
     "typecheck": "next typegen && tsc --noEmit",
-    "lint": "eslint .",
     "test": "tsx --test lib/data/*.test.ts lib/recommend/*.test.ts tests/unit/*.test.ts tests/unit/*.test.tsx",
     "test:e2e": "playwright test"
   },
@@ -27,13 +23,10 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0",
-    "@railway/cli": "^5.71.0",
     "@types/node": "^24.0.0",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "eslint": "^10.14.0",
-    "eslint-config-next": "16.4.5",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },

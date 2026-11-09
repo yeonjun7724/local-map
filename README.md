@@ -144,7 +144,6 @@ Python 생성 로직의 오프라인 검사는 다음과 같습니다.
 
 ```sh
 npm run typecheck
-npm run lint
 npm test
 npm run build
 ```
