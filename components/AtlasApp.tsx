@@ -15,6 +15,7 @@ import type { Locale } from '@/lib/i18n';
 import RecommendPanel from './routes/RecommendPanel';
 import { MyRouteProvider, useMyRoute } from './routes/MyRouteProvider';
 import { QRCodeSVG } from 'qrcode.react';
+import { track, type AnalyticsScope } from '@/lib/analytics';
 
 const MapView = dynamic(() => import('./map/MapView'), {
   ssr: false,
@@ -43,6 +44,7 @@ function AtlasContent({ data }: { data: AtlasData }) {
   const [toast, setToast] = useState('');
   const [recommendOpen, setRecommendOpen] = useState(false);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [qrScope, setQrScope] = useState<AnalyticsScope>('map');
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -93,11 +95,15 @@ function AtlasContent({ data }: { data: AtlasData }) {
   const selected = filtered.find(place => selection?.routeId === viewId && place.id === selection.placeId) ?? null;
   const center = siteConfig.region.center;
   const selectPlace = useCallback((placeId: string) => {
+    const place = data.places.find(item => item.id === placeId);
+    if (place) track('place_open', { place_id: place.id, category: place.category });
     setSelection({ routeId: viewId, placeId, origin: 'card' });
-  }, [viewId, setSelection]);
+  }, [data.places, viewId]);
   const selectFromMap = useCallback((placeId: string) => {
+    const place = data.places.find(item => item.id === placeId);
+    if (place) track('place_open', { place_id: place.id, category: place.category });
     setSelection({ routeId: viewId, placeId, origin: 'map' });
-  }, [viewId, setSelection]);
+  }, [data.places, viewId]);
   useEffect(() => {
     if (selected && selection?.origin === 'map') {
       document.getElementById(`place-card-${selected.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
@@ -113,20 +119,22 @@ function AtlasContent({ data }: { data: AtlasData }) {
   }
 
   function selectStop(placeId: string) {
+    const place = data.places.find(item => item.id === placeId);
+    if (place) track('place_open', { place_id: place.id, category: place.category });
     setCategory('all');
     setQuery('');
     setSelection({ routeId: viewId, placeId, origin: 'itinerary' });
     setCameraRequest(value => value + 1);
   }
 
-  async function share() {
-    const url = new URL(window.location.href);
-    url.hash = viewId;
+  async function copyShareLink() {
+    if (!qrUrl) return;
     try {
-      await navigator.clipboard.writeText(url.href);
-      setToast('선택한 보기의 링크를 복사했습니다.');
+      await navigator.clipboard.writeText(qrUrl);
+      track('share', { scope: qrScope });
+      setToast('공유 링크를 복사했습니다.');
     } catch {
-      setToast('주소창의 링크를 복사해주세요: ' + url.href);
+      setToast('링크를 복사할 수 없습니다. 공유 링크를 직접 복사해주세요.');
     }
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(''), 5000);
@@ -138,7 +146,21 @@ function AtlasContent({ data }: { data: AtlasData }) {
     if (kind === 'place' && selected) params.set('place', selected.id);
     if (kind === 'route' && myRoute.placeIds.length) params.set('myRoute', myRoute.placeIds.join(','));
     url.hash = `${kind === 'route' && !myRoute.placeIds.length ? viewId : 'all'}${params.size ? `?${params}` : ''}`;
+    setQrScope(kind);
     setQrUrl(url.href);
+  }
+
+  function downloadQr() {
+    const svg = document.querySelector<SVGSVGElement>('.share-qr');
+    if (!svg) return;
+    const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = `local-map-${qrScope}-qr.svg`;
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+    track('qr_download', { scope: qrScope });
   }
 
   return <>
@@ -162,6 +184,7 @@ function AtlasContent({ data }: { data: AtlasData }) {
             onClick={resetFilters}>{locale === 'ko' ? '전체' : 'All places'}</button>
           {data.routes.map(item => <button key={item.routeId} className={item.routeId === viewId ? 'active' : ''}
             aria-pressed={item.routeId === viewId} onClick={() => {
+              track('route_open', { route_id: item.routeId });
               setCategory('all'); setQuery(''); setSelection(null);
               setCameraRequest(value => value + 1);
               window.location.hash = item.routeId;
@@ -239,6 +262,8 @@ function AtlasContent({ data }: { data: AtlasData }) {
         <button type="button" className="qr-close" onClick={() => setQrUrl(null)} aria-label={locale === 'ko' ? 'QR 코드 닫기' : 'Close QR code'}>×</button>
         <h2 id="qr-title">{locale === 'ko' ? 'QR 코드로 열기' : 'Open with QR code'}</h2>
         <QRCodeSVG className="share-qr" value={qrUrl} size={280} level="M" includeMargin aria-label={locale === 'ko' ? '공유 링크 QR 코드' : 'QR code for this link'} />
+        <button type="button" onClick={copyShareLink}>{locale === 'ko' ? '공유 링크 복사' : 'Copy share link'}</button>
+        <button type="button" onClick={downloadQr}>{locale === 'ko' ? 'QR 코드 저장' : 'Save QR code'}</button>
         <a href={qrUrl}>{locale === 'ko' ? '공유 링크 열기' : 'Open shared link'}</a>
       </section>
     </div>}

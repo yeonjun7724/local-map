@@ -5,6 +5,7 @@ import type { Place, Theme } from '@/lib/data/types';
 import { useMyRoute } from './MyRouteProvider';
 import type { Locale } from '@/lib/i18n';
 import { getMessages } from '@/lib/i18n';
+import { track } from '@/lib/analytics';
 
 type Result = { placeIds: string[]; reason: string; source: 'ai' | 'rule' };
 type Props = { places: Place[]; themes: Theme[]; locale: Locale };
@@ -33,7 +34,9 @@ export default function RecommendPanel({ places, themes, locale }: Props) {
       const response = await fetch('/api/recommend', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ minutes, theme: theme || null, companion, startId: startId || null }) });
       if (!response.ok) throw new Error('Recommendation request failed');
-      setResult(await response.json() as Result);
+      const recommendation = await response.json() as Result;
+      setResult(recommendation);
+      track('recommend', { source: recommendation.source, minutes, theme: theme || null, companion });
     } catch { setError(t.error); }
     finally { setLoading(false); }
   }
